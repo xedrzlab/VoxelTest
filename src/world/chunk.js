@@ -7,7 +7,7 @@ import {
   TILE_HEIGHT,
   TILE_SIZE,
 } from '../config.js';
-import { blockAt } from './terrain.js';
+import { blockAt, tileHash } from './terrain.js';
 
 const chunkMaterial = new THREE.MeshLambertMaterial({
   vertexColors: true,
@@ -27,10 +27,85 @@ function toColor(rgb, tint = 1) {
 }
 
 /**
- * Build a mesh for one chunk using face culling: only faces not
- * touching another solid block become geometry. With a single flat
- * layer this drops all internal side faces and every bottom face.
+ * Add a small decorative box on top of a tile: 5 faces (skip bottom),
+ * flat vertex color, at local coords (cx, cz) with the given size.
  */
+function pushDecoBox(
+  positions,
+  normals,
+  colors,
+  indices,
+  cx,
+  cz,
+  base,
+  size,
+  color,
+) {
+  const [w, h, d] = size;
+  const x0 = cx - w / 2;
+  const x1 = cx + w / 2;
+  const z0 = cz - d / 2;
+  const z1 = cz + d / 2;
+  const y0 = base;
+  const y1 = base + h;
+
+  // Top
+  pushQuad(positions, normals, colors, indices,
+    [x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1],
+    [0, 1, 0], color);
+  // North (-Z)
+  pushQuad(positions, normals, colors, indices,
+    [x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
+    [0, 0, -1], color);
+  // South (+Z)
+  pushQuad(positions, normals, colors, indices,
+    [x1, y0, z1], [x0, y0, z1], [x0, y1, z1], [x1, y1, z1],
+    [0, 0, 1], color);
+  // West (-X)
+  pushQuad(positions, normals, colors, indices,
+    [x0, y0, z1], [x0, y0, z0], [x0, y1, z0], [x0, y1, z1],
+    [-1, 0, 0], color);
+  // East (+X)
+  pushQuad(positions, normals, colors, indices,
+    [x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0],
+    [1, 0, 0], color);
+}
+
+function addGrassTuft(positions, normals, colors, indices, lx, lz, wx, wz) {
+  // 1–2 small blades of grass sitting on top of the tile.
+  const base = TILE_HEIGHT;
+  const ox = (tileHash(wx, wz, 11) - 0.5) * 0.35;
+  const oz = (tileHash(wx, wz, 13) - 0.5) * 0.35;
+  const bladeColor = toColor([0x4c, 0x86, 0x36]);
+  const bladeColor2 = toColor([0x5d, 0x9a, 0x42]);
+
+  pushDecoBox(
+    positions, normals, colors, indices,
+    lx + 0.5 + ox, lz + 0.5 + oz, base,
+    [0.14, 0.32 + tileHash(wx, wz, 17) * 0.14, 0.14], bladeColor,
+  );
+
+  if (tileHash(wx, wz, 19) < 0.6) {
+    pushDecoBox(
+      positions, normals, colors, indices,
+      lx + 0.5 + ox + 0.16, lz + 0.5 + oz - 0.1, base,
+      [0.1, 0.22, 0.1], bladeColor2,
+    );
+  }
+}
+
+function addPebble(positions, normals, colors, indices, lx, lz, wx, wz) {
+  const base = TILE_HEIGHT;
+  const ox = (tileHash(wx, wz, 23) - 0.5) * 0.4;
+  const oz = (tileHash(wx, wz, 29) - 0.5) * 0.4;
+  const color = toColor([0x9a, 0x9d, 0xa0]);
+  pushDecoBox(
+    positions, normals, colors, indices,
+    lx + 0.5 + ox, lz + 0.5 + oz, base,
+    [0.16, 0.12, 0.16], color,
+  );
+}
+
 export function buildChunkMesh(chunkX, chunkZ) {
   const positions = [];
   const normals = [];
@@ -61,85 +136,36 @@ export function buildChunkMesh(chunkX, chunkZ) {
       const y0 = 0;
       const y1 = h;
 
-      // Top face (always visible in single-layer world)
-      pushQuad(
-        positions,
-        normals,
-        colors,
-        indices,
-        [x0, y1, z0],
-        [x1, y1, z0],
-        [x1, y1, z1],
-        [x0, y1, z1],
-        [0, 1, 0],
-        topColor,
-      );
+      pushQuad(positions, normals, colors, indices,
+        [x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1],
+        [0, 1, 0], topColor);
 
-      // Side faces — only where the neighboring tile is not solid
-      // In a flat world that's only at the world border, but this
-      // stays correct if we later allow air tiles inside the world.
-      const nNorth = blockAt(wx, wz - 1);
-      if (nNorth === BLOCK.AIR) {
-        pushQuad(
-          positions,
-          normals,
-          colors,
-          indices,
-          [x0, y0, z0],
-          [x1, y0, z0],
-          [x1, y1, z0],
-          [x0, y1, z0],
-          [0, 0, -1],
-          sideColor,
-        );
+      if (blockAt(wx, wz - 1) === BLOCK.AIR) {
+        pushQuad(positions, normals, colors, indices,
+          [x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
+          [0, 0, -1], sideColor);
+      }
+      if (blockAt(wx, wz + 1) === BLOCK.AIR) {
+        pushQuad(positions, normals, colors, indices,
+          [x1, y0, z1], [x0, y0, z1], [x0, y1, z1], [x1, y1, z1],
+          [0, 0, 1], sideColor);
+      }
+      if (blockAt(wx - 1, wz) === BLOCK.AIR) {
+        pushQuad(positions, normals, colors, indices,
+          [x0, y0, z1], [x0, y0, z0], [x0, y1, z0], [x0, y1, z1],
+          [-1, 0, 0], sideColor);
+      }
+      if (blockAt(wx + 1, wz) === BLOCK.AIR) {
+        pushQuad(positions, normals, colors, indices,
+          [x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0],
+          [1, 0, 0], sideColor);
       }
 
-      const nSouth = blockAt(wx, wz + 1);
-      if (nSouth === BLOCK.AIR) {
-        pushQuad(
-          positions,
-          normals,
-          colors,
-          indices,
-          [x1, y0, z1],
-          [x0, y0, z1],
-          [x0, y1, z1],
-          [x1, y1, z1],
-          [0, 0, 1],
-          sideColor,
-        );
-      }
-
-      const nWest = blockAt(wx - 1, wz);
-      if (nWest === BLOCK.AIR) {
-        pushQuad(
-          positions,
-          normals,
-          colors,
-          indices,
-          [x0, y0, z1],
-          [x0, y0, z0],
-          [x0, y1, z0],
-          [x0, y1, z1],
-          [-1, 0, 0],
-          sideColor,
-        );
-      }
-
-      const nEast = blockAt(wx + 1, wz);
-      if (nEast === BLOCK.AIR) {
-        pushQuad(
-          positions,
-          normals,
-          colors,
-          indices,
-          [x1, y0, z0],
-          [x1, y0, z1],
-          [x1, y1, z1],
-          [x1, y1, z0],
-          [1, 0, 0],
-          sideColor,
-        );
+      // Decorations sitting on top of the tile.
+      if (block === BLOCK.GRASS && tileHash(wx, wz, 3) < 0.16) {
+        addGrassTuft(positions, normals, colors, indices, lx, lz, wx, wz);
+      } else if (block === BLOCK.STONE && tileHash(wx, wz, 5) < 0.08) {
+        addPebble(positions, normals, colors, indices, lx, lz, wx, wz);
       }
     }
   }
@@ -162,5 +188,4 @@ export function buildChunkMesh(chunkX, chunkZ) {
 export function disposeChunkMesh(mesh) {
   if (!mesh) return;
   mesh.geometry?.dispose();
-  // material is shared, do not dispose
 }

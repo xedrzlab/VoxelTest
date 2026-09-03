@@ -15,12 +15,14 @@ export const BLOCK = {
   GRASS: 1,
   DIRT: 2,
   STONE: 3,
+  ROAD: 4,
 };
 
 export const BLOCK_COLORS = {
   [BLOCK.GRASS]: [0x6a, 0xa8, 0x4a],
   [BLOCK.DIRT]: [0x8a, 0x5a, 0x37],
   [BLOCK.STONE]: [0x88, 0x8a, 0x8c],
+  [BLOCK.ROAD]: [0xba, 0x94, 0x62],
 };
 
 export const BLOCK_SIDE_TINT = 0.78;
