@@ -11,7 +11,6 @@ export class InputController {
   constructor() {
     /** @type {Set<string>} cardinal directions currently held */
     this.held = new Set();
-    /** track dpad button element -> which cardinals it added */
     this._bindKeyboard();
     this._bindDpad();
   }
@@ -53,13 +52,31 @@ export class InputController {
         .filter(Boolean);
       if (dirs.length === 0) return;
 
+      // Track active pointers per-button so we know when the last
+      // finger has lifted, even if it drifted off the button first.
+      const activePointers = new Set();
+
       const press = (e) => {
         e.preventDefault();
+        // Capture the pointer so pointerup fires on this button even
+        // if the finger drifts a few pixels away. Without this, a small
+        // drift fires pointerleave and drops one of the two directions
+        // for a diagonal button — the finger reads as "down" alone and
+        // the character walks straight down.
+        if (e.pointerId != null && btn.setPointerCapture) {
+          try {
+            btn.setPointerCapture(e.pointerId);
+          } catch {}
+          activePointers.add(e.pointerId);
+        }
         for (const d of dirs) this.held.add(d);
         btn.classList.add('is-active');
       };
+
       const release = (e) => {
         e.preventDefault();
+        if (e.pointerId != null) activePointers.delete(e.pointerId);
+        if (activePointers.size > 0) return;
         for (const d of dirs) this.held.delete(d);
         btn.classList.remove('is-active');
       };
@@ -67,23 +84,15 @@ export class InputController {
       btn.addEventListener('pointerdown', press);
       btn.addEventListener('pointerup', release);
       btn.addEventListener('pointercancel', release);
-      btn.addEventListener('pointerleave', release);
-      btn.addEventListener('touchstart', press, { passive: false });
-      btn.addEventListener('touchend', release, { passive: false });
       btn.addEventListener('contextmenu', (e) => e.preventDefault());
     });
   }
 
-  /**
-   * Combine all held cardinals into a single {x,z} step vector.
-   * Opposing directions cancel; result is one of the 8 unit deltas or null.
-   */
   currentDirection() {
     if (this.held.size === 0) return null;
     let x = 0;
     let z = 0;
     for (const d of this.held) {
-      // Skip a direction whose opposite is also held; they cancel.
       if (this.held.has(OPPOSITE[d])) continue;
       const v = CARDINAL[d];
       x += v.x;
