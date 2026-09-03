@@ -19,7 +19,11 @@ function pushQuad(positions, normals, colors, indices, p0, p1, p2, p3, normal, c
   positions.push(...p0, ...p1, ...p2, ...p3);
   for (let k = 0; k < 4; k++) normals.push(...normal);
   for (let k = 0; k < 4; k++) colors.push(...color);
-  indices.push(i, i + 1, i + 2, i, i + 2, i + 3);
+  // Reversed winding so the calculated face normal matches the supplied
+  // vertex normal — otherwise three.js's back-face culling drops every
+  // ground face and leaves only the two "wrong-side" faces of each box
+  // visible (which is what created the floating-tuft look).
+  indices.push(i, i + 2, i + 1, i, i + 3, i + 2);
 }
 
 function toColor(rgb, tint = 1) {
