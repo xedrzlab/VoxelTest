@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0b0d10" />
+    <title>VoxelTest — Phase 1</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+
+    <div id="hud">
+      <div id="stats"></div>
+    </div>
+
+    <div id="dpad" aria-label="Movement pad">
+      <button class="dpad-btn" data-dir="up" aria-label="Up">▲</button>
+      <button class="dpad-btn" data-dir="left" aria-label="Left">◀</button>
+      <button class="dpad-btn dpad-center" aria-hidden="true" tabindex="-1"></button>
+      <button class="dpad-btn" data-dir="right" aria-label="Right">▶</button>
+      <button class="dpad-btn" data-dir="down" aria-label="Down">▼</button>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
