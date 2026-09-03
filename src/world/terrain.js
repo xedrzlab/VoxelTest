@@ -21,24 +21,25 @@ const SCALE_B = 1 / 6;
 
 const CENTER = WORLD_SIZE_TILES / 2;
 
-// Two winding roads: one running east-west, one north-south, meeting
-// near the center. Width defined by distance to the road spine.
+// Two winding roads that intersect exactly at the world center so the
+// player spawn always sits on the crossroads.
 function roadDistance(x, z) {
-  const spineEW = CENTER + Math.sin(x * 0.08) * 6 + Math.sin(x * 0.02) * 4;
-  const spineNS = CENTER + Math.cos(z * 0.07) * 5 + Math.sin(z * 0.02) * 3;
+  const dxc = x - CENTER;
+  const dzc = z - CENTER;
+  const spineEW = CENTER + Math.sin(dxc * 0.08) * 6 + Math.sin(dxc * 0.02) * 4;
+  const spineNS = CENTER + Math.cos(dzc * 0.07) * 5 + Math.sin(dzc * 0.02) * 3;
   const dEW = Math.abs(z - spineEW);
   const dNS = Math.abs(x - spineNS);
   return Math.min(dEW, dNS);
 }
 
 export function isRoad(x, z) {
-  return roadDistance(x, z) < 1.5;
+  return roadDistance(x, z) < 1.8;
 }
 
 function roadEdge(x, z) {
-  // A slightly wider band for scuffed dirt shoulder around the road.
   const d = roadDistance(x, z);
-  return d >= 1.5 && d < 2.4;
+  return d >= 1.8 && d < 2.8;
 }
 
 export function blockAt(worldX, worldZ) {

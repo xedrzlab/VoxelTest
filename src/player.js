@@ -106,7 +106,8 @@ export class Player {
     this.rightLeg = rightLeg;
 
     this.mesh.position.set((this.tileX + 0.5) * TILE_SIZE, TILE_HEIGHT, (this.tileZ + 0.5) * TILE_SIZE);
-    this.mesh.rotation.y = Math.PI; // face south by default
+    // Face screen-down by default (world +X+Z, toward the camera).
+    this.mesh.rotation.y = Math.PI / 4;
     scene.add(this.mesh);
 
     this.from = { x: this.mesh.position.x, z: this.mesh.position.z };

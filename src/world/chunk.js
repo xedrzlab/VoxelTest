@@ -72,24 +72,31 @@ function pushDecoBox(
 }
 
 function addGrassTuft(positions, normals, colors, indices, lx, lz, wx, wz) {
-  // 1–2 small blades of grass sitting on top of the tile.
+  // 2–3 chunky blades of grass sitting on top of the tile. Sized so
+  // they're clearly visible on a phone screen at isometric zoom.
   const base = TILE_HEIGHT;
   const ox = (tileHash(wx, wz, 11) - 0.5) * 0.35;
   const oz = (tileHash(wx, wz, 13) - 0.5) * 0.35;
-  const bladeColor = toColor([0x4c, 0x86, 0x36]);
-  const bladeColor2 = toColor([0x5d, 0x9a, 0x42]);
+  const bladeColor = toColor([0x38, 0x6d, 0x22]);
+  const bladeColor2 = toColor([0x4f, 0x8c, 0x2f]);
 
   pushDecoBox(
     positions, normals, colors, indices,
     lx + 0.5 + ox, lz + 0.5 + oz, base,
-    [0.14, 0.32 + tileHash(wx, wz, 17) * 0.14, 0.14], bladeColor,
+    [0.22, 0.55 + tileHash(wx, wz, 17) * 0.2, 0.22], bladeColor,
   );
 
-  if (tileHash(wx, wz, 19) < 0.6) {
+  pushDecoBox(
+    positions, normals, colors, indices,
+    lx + 0.5 + ox + 0.22, lz + 0.5 + oz - 0.14, base,
+    [0.16, 0.4, 0.16], bladeColor2,
+  );
+
+  if (tileHash(wx, wz, 19) < 0.55) {
     pushDecoBox(
       positions, normals, colors, indices,
-      lx + 0.5 + ox + 0.16, lz + 0.5 + oz - 0.1, base,
-      [0.1, 0.22, 0.1], bladeColor2,
+      lx + 0.5 + ox - 0.18, lz + 0.5 + oz + 0.16, base,
+      [0.14, 0.3, 0.14], bladeColor2,
     );
   }
 }
