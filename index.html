@@ -18,11 +18,15 @@
     </div>
 
     <div id="dpad" aria-label="Movement pad">
-      <button class="dpad-btn" data-dir="up" aria-label="Up">▲</button>
-      <button class="dpad-btn" data-dir="left" aria-label="Left">◀</button>
+      <button class="dpad-btn dpad-diag" data-dirs="up,left" aria-label="Up-left">↖</button>
+      <button class="dpad-btn" data-dirs="up" aria-label="Up">▲</button>
+      <button class="dpad-btn dpad-diag" data-dirs="up,right" aria-label="Up-right">↗</button>
+      <button class="dpad-btn" data-dirs="left" aria-label="Left">◀</button>
       <button class="dpad-btn dpad-center" aria-hidden="true" tabindex="-1"></button>
-      <button class="dpad-btn" data-dir="right" aria-label="Right">▶</button>
-      <button class="dpad-btn" data-dir="down" aria-label="Down">▼</button>
+      <button class="dpad-btn" data-dirs="right" aria-label="Right">▶</button>
+      <button class="dpad-btn dpad-diag" data-dirs="down,left" aria-label="Down-left">↙</button>
+      <button class="dpad-btn" data-dirs="down" aria-label="Down">▼</button>
+      <button class="dpad-btn dpad-diag" data-dirs="down,right" aria-label="Down-right">↘</button>
     </div>
 
     <script type="module" src="/src/main.js"></script>

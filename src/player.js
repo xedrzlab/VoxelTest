@@ -112,6 +112,7 @@ export class Player {
     this.from = { x: this.mesh.position.x, z: this.mesh.position.z };
     this.to = { x: this.mesh.position.x, z: this.mesh.position.z };
     this.stepStart = 0;
+    this.stepDuration = STEP_DURATION_MS;
     this.stepping = false;
     this.walkPhase = 0;
   }
@@ -137,6 +138,9 @@ export class Player {
     this.to.x = (nextTileX + 0.5) * TILE_SIZE;
     this.to.z = (nextTileZ + 0.5) * TILE_SIZE;
     this.stepStart = now;
+    // Diagonal steps travel sqrt(2) further, so they take proportionally longer.
+    const dist = Math.hypot(dx, dz);
+    this.stepDuration = STEP_DURATION_MS * (dist > 0 ? dist : 1);
     this.stepping = true;
     // Alternate which leg leads on each step.
     this.walkPhase = this.walkPhase === 1 ? -1 : 1;
@@ -149,7 +153,7 @@ export class Player {
       this.mesh.position.y = TILE_HEIGHT;
       return;
     }
-    const t = Math.min(1, (now - this.stepStart) / STEP_DURATION_MS);
+    const t = Math.min(1, (now - this.stepStart) / this.stepDuration);
     const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     this.mesh.position.x = this.from.x + (this.to.x - this.from.x) * e;
     this.mesh.position.z = this.from.z + (this.to.z - this.from.z) * e;

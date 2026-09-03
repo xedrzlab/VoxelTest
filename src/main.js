@@ -57,7 +57,14 @@ function init() {
       if (dir) {
         const nx = player.tileX + dir.x;
         const nz = player.tileZ + dir.z;
-        if (world.isWalkable(nx, nz)) {
+        // Diagonal step needs both adjacent cardinal tiles clear too, so
+        // the character never squeezes through a corner.
+        const diagonalOk =
+          dir.x === 0 ||
+          dir.z === 0 ||
+          (world.isWalkable(player.tileX + dir.x, player.tileZ) &&
+            world.isWalkable(player.tileX, player.tileZ + dir.z));
+        if (world.isWalkable(nx, nz) && diagonalOk) {
           player.beginStep(nx, nz, now);
         }
       }
