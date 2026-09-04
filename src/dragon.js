@@ -23,65 +23,82 @@ function box(w, h, d, color, x = 0, y = 0, z = 0) {
   return mesh;
 }
 
+// Backward shift applied to the dragon's inner mesh group so the snout
+// sits at the front edge of the caster tile. The mesh's snout tip is
+// at local z=+2.14 before the shift; a −1.6 push lands it at ~0.54,
+// which is a hair past the tile front (z=+0.5) — perfect for the fire
+// wave to start just past the mouth.
+const MOUTH_OFFSET = -1.6;
+
 // Build a voxel dragon facing +Z by default.
 function buildDragonMesh() {
   const root = new THREE.Group();
   root.name = 'dragon';
 
+  // The dragon is much longer than one tile — snout at local z=1.95,
+  // tail at z=-2.95. If we anchor the mesh at its geometric center the
+  // fire wave (which starts 1 tile in front of the tile center)
+  // renders inside the head. Nest all geometry in an inner group and
+  // push it back so the snout sits at the front edge of the tile;
+  // then the wave visibly starts a tile past the mouth.
+  const inner = new THREE.Group();
+  inner.position.z = MOUTH_OFFSET;
+  root.add(inner);
+
   // ── Body: two boxes so belly reads lighter ───────────────────────
   const body = box(1.1, 0.7, 1.8, COLOR.scale, 0, 0.85, 0);
-  root.add(body);
+  inner.add(body);
   const belly = box(0.9, 0.35, 1.7, COLOR.belly, 0, 0.55, 0.02);
-  root.add(belly);
+  inner.add(belly);
 
   // Spine spikes: five small dark bumps along the back.
   for (let i = -2; i <= 2; i++) {
-    root.add(box(0.14, 0.28, 0.22, COLOR.spike, 0, 1.28, i * 0.32));
+    inner.add(box(0.14, 0.28, 0.22, COLOR.spike, 0, 1.28, i * 0.32));
   }
 
   // ── Neck (angled forward) and head ───────────────────────────────
   const neck = box(0.55, 0.55, 0.75, COLOR.scale, 0, 1.15, 1.1);
   neck.rotation.x = -0.35;
-  root.add(neck);
+  inner.add(neck);
 
   const head = box(0.7, 0.55, 0.7, COLOR.scale, 0, 1.35, 1.55);
-  root.add(head);
+  inner.add(head);
   // Snout
-  root.add(box(0.55, 0.35, 0.5, COLOR.scale, 0, 1.25, 1.95));
+  inner.add(box(0.55, 0.35, 0.5, COLOR.scale, 0, 1.25, 1.95));
   // Underjaw / lighter chin
-  root.add(box(0.5, 0.14, 0.45, COLOR.belly, 0, 1.05, 1.95));
+  inner.add(box(0.5, 0.14, 0.45, COLOR.belly, 0, 1.05, 1.95));
   // Teeth: two small tusks below the snout.
-  root.add(box(0.06, 0.1, 0.06, COLOR.tooth, -0.18, 1.02, 2.14));
-  root.add(box(0.06, 0.1, 0.06, COLOR.tooth, 0.18, 1.02, 2.14));
+  inner.add(box(0.06, 0.1, 0.06, COLOR.tooth, -0.18, 1.02, 2.14));
+  inner.add(box(0.06, 0.1, 0.06, COLOR.tooth, 0.18, 1.02, 2.14));
 
   // Horns on top of head — swept back.
   const hornL = box(0.14, 0.4, 0.14, COLOR.horn, -0.24, 1.7, 1.45);
   hornL.rotation.x = 0.4;
-  root.add(hornL);
+  inner.add(hornL);
   const hornR = box(0.14, 0.4, 0.14, COLOR.horn, 0.24, 1.7, 1.45);
   hornR.rotation.x = 0.4;
-  root.add(hornR);
+  inner.add(hornR);
   // Little brow ridges
-  root.add(box(0.18, 0.08, 0.08, COLOR.horn, -0.22, 1.6, 1.68));
-  root.add(box(0.18, 0.08, 0.08, COLOR.horn, 0.22, 1.6, 1.68));
+  inner.add(box(0.18, 0.08, 0.08, COLOR.horn, -0.22, 1.6, 1.68));
+  inner.add(box(0.18, 0.08, 0.08, COLOR.horn, 0.22, 1.6, 1.68));
 
   // Eyes: yellow scleras with dark pupils, slit-facing forward.
-  root.add(box(0.14, 0.14, 0.06, COLOR.eye, -0.24, 1.45, 1.88));
-  root.add(box(0.14, 0.14, 0.06, COLOR.eye, 0.24, 1.45, 1.88));
-  root.add(box(0.05, 0.12, 0.02, COLOR.eyePupil, -0.24, 1.45, 1.91));
-  root.add(box(0.05, 0.12, 0.02, COLOR.eyePupil, 0.24, 1.45, 1.91));
+  inner.add(box(0.14, 0.14, 0.06, COLOR.eye, -0.24, 1.45, 1.88));
+  inner.add(box(0.14, 0.14, 0.06, COLOR.eye, 0.24, 1.45, 1.88));
+  inner.add(box(0.05, 0.12, 0.02, COLOR.eyePupil, -0.24, 1.45, 1.91));
+  inner.add(box(0.05, 0.12, 0.02, COLOR.eyePupil, 0.24, 1.45, 1.91));
 
   // ── Tail: 5 tapered segments curving back and slightly up ────────
   for (let i = 0; i < 5; i++) {
     const s = 1 - i * 0.14;
     const z = -0.9 - i * 0.4;
     const y = 0.85 + i * 0.08;
-    root.add(box(0.55 * s, 0.5 * s, 0.4, COLOR.scale, 0, y, z));
-    root.add(box(0.4 * s, 0.2 * s, 0.4, COLOR.belly, 0, y - 0.2 * s, z));
-    root.add(box(0.09 * s, 0.16 * s, 0.14, COLOR.spike, 0, y + 0.28 * s, z));
+    inner.add(box(0.55 * s, 0.5 * s, 0.4, COLOR.scale, 0, y, z));
+    inner.add(box(0.4 * s, 0.2 * s, 0.4, COLOR.belly, 0, y - 0.2 * s, z));
+    inner.add(box(0.09 * s, 0.16 * s, 0.14, COLOR.spike, 0, y + 0.28 * s, z));
   }
   // Tail tip: two small spikes shaped like a spade.
-  root.add(box(0.24, 0.16, 0.24, COLOR.spike, 0, 1.25, -2.95));
+  inner.add(box(0.24, 0.16, 0.24, COLOR.spike, 0, 1.25, -2.95));
 
   // ── Legs and clawed feet ─────────────────────────────────────────
   const legPositions = [
@@ -92,12 +109,12 @@ function buildDragonMesh() {
   ];
   for (const [x, z] of legPositions) {
     // Upper leg (thigh)
-    root.add(box(0.32, 0.42, 0.32, COLOR.scaleDark, x, 0.55, z));
+    inner.add(box(0.32, 0.42, 0.32, COLOR.scaleDark, x, 0.55, z));
     // Foot
-    root.add(box(0.36, 0.16, 0.44, COLOR.scaleDark, x, 0.28, z + 0.05));
+    inner.add(box(0.36, 0.16, 0.44, COLOR.scaleDark, x, 0.28, z + 0.05));
     // Three claws per foot
     for (let c = -1; c <= 1; c++) {
-      root.add(box(0.05, 0.06, 0.14, COLOR.claw, x + c * 0.11, 0.22, z + 0.3));
+      inner.add(box(0.05, 0.06, 0.14, COLOR.claw, x + c * 0.11, 0.22, z + 0.3));
     }
   }
 
@@ -122,8 +139,8 @@ function buildDragonMesh() {
   }
   const leftWing = makeWing(-1);
   const rightWing = makeWing(1);
-  root.add(leftWing);
-  root.add(rightWing);
+  inner.add(leftWing);
+  inner.add(rightWing);
 
   return { root, leftWing, rightWing };
 }
