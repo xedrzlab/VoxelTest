@@ -34,11 +34,13 @@ export function resizeCamera(camera) {
 const tmpTarget = new THREE.Vector3();
 const tmpDesired = new THREE.Vector3();
 
-export function followTarget(camera, targetPos, dt) {
+export function followTarget(camera, targetPos /* dt unused */) {
+  // Snap the camera to the player's horizontal position each frame.
+  // The player interpolates smoothly during a step, so following
+  // exactly is smooth too and avoids the smoothing-lag "shake" that
+  // was showing on top of the character's step.
   tmpTarget.set(targetPos.x, 0, targetPos.z);
   tmpDesired.copy(tmpTarget).add(OFFSET);
-  // Smooth exponential follow, framerate independent.
-  const k = 1 - Math.exp(-dt * 10);
-  camera.position.lerp(tmpDesired, k);
+  camera.position.copy(tmpDesired);
   camera.lookAt(tmpTarget);
 }

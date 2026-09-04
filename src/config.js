@@ -8,7 +8,20 @@ export const TILE_HEIGHT = 1;
 
 export const VIEW_RADIUS_CHUNKS = 3;
 
-export const STEP_DURATION_MS = 160;
+// Tibia-style ground friction per tile. Higher = slower to enter.
+// Combined with PLAYER_SPEED as: stepDuration = 1000 * ground / speed.
+export const GROUND_SPEED = {
+  ROAD: 100,
+  GRASS: 150,
+  DIRT: 180,
+  STONE: 220,
+};
+
+// Level-1-ish walking speed. Raise for a faster character.
+export const PLAYER_SPEED = 220;
+
+// Diagonal steps take twice as long as cardinal steps, matching Tibia.
+export const DIAGONAL_STEP_MULT = 2;
 
 export const BLOCK = {
   AIR: 0,
@@ -23,6 +36,13 @@ export const BLOCK_COLORS = {
   [BLOCK.DIRT]: [0x8a, 0x5a, 0x37],
   [BLOCK.STONE]: [0x88, 0x8a, 0x8c],
   [BLOCK.ROAD]: [0xd6, 0xa8, 0x6a],
+};
+
+export const BLOCK_GROUND_SPEED = {
+  [BLOCK.GRASS]: GROUND_SPEED.GRASS,
+  [BLOCK.DIRT]: GROUND_SPEED.DIRT,
+  [BLOCK.STONE]: GROUND_SPEED.STONE,
+  [BLOCK.ROAD]: GROUND_SPEED.ROAD,
 };
 
 export const BLOCK_SIDE_TINT = 0.78;

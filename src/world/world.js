@@ -7,7 +7,7 @@ import {
   WORLD_SIZE_TILES,
 } from '../config.js';
 import { buildChunkMesh, disposeChunkMesh } from './chunk.js';
-import { isSolid } from './terrain.js';
+import { blockAt, isSolid } from './terrain.js';
 
 function chunkKey(cx, cz) {
   return `${cx}|${cz}`;
@@ -59,6 +59,10 @@ export class World {
         this.loaded.delete(key);
       }
     }
+  }
+
+  blockAt(tileX, tileZ) {
+    return blockAt(tileX, tileZ);
   }
 
   isWalkable(tileX, tileZ) {

@@ -65,13 +65,14 @@ function init() {
           (world.isWalkable(player.tileX + dir.x, player.tileZ) &&
             world.isWalkable(player.tileX, player.tileZ + dir.z));
         if (world.isWalkable(nx, nz) && diagonalOk) {
-          player.beginStep(nx, nz, now);
+          const destBlock = world.blockAt(nx, nz);
+          player.beginStep(nx, nz, destBlock, now);
         }
       }
     }
 
     world.update(player.tileX, player.tileZ);
-    followTarget(camera, player.position, dt);
+    followTarget(camera, player.position);
 
     renderer.render(scene, camera);
 
@@ -85,7 +86,7 @@ function init() {
     }
     if (statsEl && (frame & 7) === 0) {
       statsEl.textContent =
-        `v0.1.7  ·  fps ${fpsShown}  ·  tile ${player.tileX},${player.tileZ}  ·  ` +
+        `v0.1.8  ·  fps ${fpsShown}  ·  tile ${player.tileX},${player.tileZ}  ·  ` +
         `chunks ${world.loadedChunkCount}`;
     }
 
