@@ -1,13 +1,15 @@
 import * as THREE from 'three';
 import {
+  BLOCK,
   CHUNK_SIZE,
+  STRUCTURE_PASSABLE,
   TILE_SIZE,
   VIEW_RADIUS_CHUNKS,
   WORLD_SIZE_CHUNKS,
   WORLD_SIZE_TILES,
 } from '../config.js';
 import { buildChunkMesh, disposeChunkMesh } from './chunk.js';
-import { blockAt, isSolid } from './terrain.js';
+import { blockAt, isSolid, structureAt } from './terrain.js';
 
 function chunkKey(cx, cz) {
   return `${cx}|${cz}`;
@@ -19,16 +21,12 @@ export class World {
     this.group = new THREE.Group();
     this.group.name = 'world';
     this.scene.add(this.group);
-    /** @type {Map<string, THREE.Mesh>} */
     this.loaded = new Map();
     this.lastCenter = { cx: Number.NaN, cz: Number.NaN };
   }
 
   worldToChunk(tileX, tileZ) {
-    return {
-      cx: Math.floor(tileX / CHUNK_SIZE),
-      cz: Math.floor(tileZ / CHUNK_SIZE),
-    };
+    return { cx: Math.floor(tileX / CHUNK_SIZE), cz: Math.floor(tileZ / CHUNK_SIZE) };
   }
 
   update(playerTileX, playerTileZ) {
@@ -51,7 +49,6 @@ export class World {
         }
       }
     }
-
     for (const [key, mesh] of this.loaded) {
       if (!needed.has(key)) {
         this.group.remove(mesh);
@@ -69,14 +66,16 @@ export class World {
     if (tileX < 0 || tileZ < 0 || tileX >= WORLD_SIZE_TILES || tileZ >= WORLD_SIZE_TILES) {
       return false;
     }
+    const b = blockAt(tileX, tileZ);
+    if (b === BLOCK.AIR) return false;
+    if (b === BLOCK.WATER) return false;
+    const st = structureAt(tileX, tileZ);
+    if (st !== 0 && !STRUCTURE_PASSABLE.has(st)) return false;
     return isSolid(tileX, tileZ);
   }
 
   tileToWorld(tileX, tileZ) {
-    return {
-      x: (tileX + 0.5) * TILE_SIZE,
-      z: (tileZ + 0.5) * TILE_SIZE,
-    };
+    return { x: (tileX + 0.5) * TILE_SIZE, z: (tileZ + 0.5) * TILE_SIZE };
   }
 
   get loadedChunkCount() {

@@ -4,10 +4,13 @@ import {
   BLOCK_COLORS,
   BLOCK_SIDE_TINT,
   CHUNK_SIZE,
+  ROOF_BASE_HEIGHT,
+  STRUCTURE,
+  STRUCTURE_HEIGHTS,
   TILE_HEIGHT,
   TILE_SIZE,
 } from '../config.js';
-import { blockAt, tileHash } from './terrain.js';
+import { blockAt, roofAt, structureAt, tileHash } from './terrain.js';
 
 const chunkMaterial = new THREE.MeshLambertMaterial({
   vertexColors: true,
@@ -19,10 +22,7 @@ function pushQuad(positions, normals, colors, indices, p0, p1, p2, p3, normal, c
   positions.push(...p0, ...p1, ...p2, ...p3);
   for (let k = 0; k < 4; k++) normals.push(...normal);
   for (let k = 0; k < 4; k++) colors.push(...color);
-  // Reversed winding so the calculated face normal matches the supplied
-  // vertex normal — otherwise three.js's back-face culling drops every
-  // ground face and leaves only the two "wrong-side" faces of each box
-  // visible (which is what created the floating-tuft look).
+  // Reversed winding so the face normal matches the supplied vertex normal.
   indices.push(i, i + 2, i + 1, i, i + 3, i + 2);
 }
 
@@ -30,78 +30,63 @@ function toColor(rgb, tint = 1) {
   return [(rgb[0] / 255) * tint, (rgb[1] / 255) * tint, (rgb[2] / 255) * tint];
 }
 
-/**
- * Add a small decorative box on top of a tile: 5 faces (skip bottom),
- * flat vertex color, at local coords (cx, cz) with the given size.
- */
-function pushDecoBox(
-  positions,
-  normals,
-  colors,
-  indices,
-  cx,
-  cz,
-  base,
-  size,
-  color,
-) {
-  const [w, h, d] = size;
-  const x0 = cx - w / 2;
-  const x1 = cx + w / 2;
-  const z0 = cz - d / 2;
-  const z1 = cz + d / 2;
-  const y0 = base;
-  const y1 = base + h;
+function groundSurfaceHeight(block) {
+  // Water sits a little below tile surface.
+  if (block === BLOCK.WATER) return 0.75;
+  return TILE_HEIGHT;
+}
 
-  // Top
-  pushQuad(positions, normals, colors, indices,
-    [x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1],
-    [0, 1, 0], color);
-  // North (-Z)
-  pushQuad(positions, normals, colors, indices,
-    [x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
-    [0, 0, -1], color);
-  // South (+Z)
-  pushQuad(positions, normals, colors, indices,
-    [x1, y0, z1], [x0, y0, z1], [x0, y1, z1], [x1, y1, z1],
-    [0, 0, 1], color);
-  // West (-X)
-  pushQuad(positions, normals, colors, indices,
-    [x0, y0, z1], [x0, y0, z0], [x0, y1, z0], [x0, y1, z1],
-    [-1, 0, 0], color);
-  // East (+X)
-  pushQuad(positions, normals, colors, indices,
-    [x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0],
-    [1, 0, 0], color);
+function pushBox(positions, normals, colors, indices, x0, x1, y0, y1, z0, z1, color, sides) {
+  // sides bit flags: 1=top, 2=north(-z), 4=south(+z), 8=west(-x), 16=east(+x), 32=bottom
+  const topColor = color;
+  const sideColor = color.map((c) => c * BLOCK_SIDE_TINT);
+
+  if (sides & 1) {
+    pushQuad(positions, normals, colors, indices,
+      [x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1],
+      [0, 1, 0], topColor);
+  }
+  if (sides & 2) {
+    pushQuad(positions, normals, colors, indices,
+      [x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
+      [0, 0, -1], sideColor);
+  }
+  if (sides & 4) {
+    pushQuad(positions, normals, colors, indices,
+      [x1, y0, z1], [x0, y0, z1], [x0, y1, z1], [x1, y1, z1],
+      [0, 0, 1], sideColor);
+  }
+  if (sides & 8) {
+    pushQuad(positions, normals, colors, indices,
+      [x0, y0, z1], [x0, y0, z0], [x0, y1, z0], [x0, y1, z1],
+      [-1, 0, 0], sideColor);
+  }
+  if (sides & 16) {
+    pushQuad(positions, normals, colors, indices,
+      [x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0],
+      [1, 0, 0], sideColor);
+  }
+  if (sides & 32) {
+    pushQuad(positions, normals, colors, indices,
+      [x1, y0, z0], [x0, y0, z0], [x0, y0, z1], [x1, y0, z1],
+      [0, -1, 0], sideColor);
+  }
 }
 
 function addGrassTuft(positions, normals, colors, indices, lx, lz, wx, wz) {
-  // 2–3 chunky blades of grass sitting on top of the tile. Sized so
-  // they're clearly visible on a phone screen at isometric zoom.
   const base = TILE_HEIGHT;
   const ox = (tileHash(wx, wz, 11) - 0.5) * 0.35;
   const oz = (tileHash(wx, wz, 13) - 0.5) * 0.35;
-  const bladeColor = toColor([0x38, 0x6d, 0x22]);
-  const bladeColor2 = toColor([0x4f, 0x8c, 0x2f]);
-
-  pushDecoBox(
-    positions, normals, colors, indices,
-    lx + 0.5 + ox, lz + 0.5 + oz, base,
-    [0.22, 0.55 + tileHash(wx, wz, 17) * 0.2, 0.22], bladeColor,
-  );
-
-  pushDecoBox(
-    positions, normals, colors, indices,
-    lx + 0.5 + ox + 0.22, lz + 0.5 + oz - 0.14, base,
-    [0.16, 0.4, 0.16], bladeColor2,
-  );
-
+  const blade = toColor([0x38, 0x6d, 0x22]);
+  const blade2 = toColor([0x4f, 0x8c, 0x2f]);
+  const push = (cx, cz, w, h, d, c) => {
+    pushBox(positions, normals, colors, indices,
+      cx - w / 2, cx + w / 2, base, base + h, cz - d / 2, cz + d / 2, c, 31);
+  };
+  push(lx + 0.5 + ox, lz + 0.5 + oz, 0.22, 0.55 + tileHash(wx, wz, 17) * 0.2, 0.22, blade);
+  push(lx + 0.5 + ox + 0.22, lz + 0.5 + oz - 0.14, 0.16, 0.4, 0.16, blade2);
   if (tileHash(wx, wz, 19) < 0.55) {
-    pushDecoBox(
-      positions, normals, colors, indices,
-      lx + 0.5 + ox - 0.18, lz + 0.5 + oz + 0.16, base,
-      [0.14, 0.3, 0.14], bladeColor2,
-    );
+    push(lx + 0.5 + ox - 0.18, lz + 0.5 + oz + 0.16, 0.14, 0.3, 0.14, blade2);
   }
 }
 
@@ -109,12 +94,10 @@ function addPebble(positions, normals, colors, indices, lx, lz, wx, wz) {
   const base = TILE_HEIGHT;
   const ox = (tileHash(wx, wz, 23) - 0.5) * 0.4;
   const oz = (tileHash(wx, wz, 29) - 0.5) * 0.4;
-  const color = toColor([0x9a, 0x9d, 0xa0]);
-  pushDecoBox(
-    positions, normals, colors, indices,
-    lx + 0.5 + ox, lz + 0.5 + oz, base,
-    [0.16, 0.12, 0.16], color,
-  );
+  const c = toColor([0x9a, 0x9d, 0xa0]);
+  pushBox(positions, normals, colors, indices,
+    lx + ox + 0.42, lx + ox + 0.58, base, base + 0.12,
+    lz + oz + 0.42, lz + oz + 0.58, c, 31);
 }
 
 export function buildChunkMesh(chunkX, chunkZ) {
@@ -125,8 +108,6 @@ export function buildChunkMesh(chunkX, chunkZ) {
 
   const originX = chunkX * CHUNK_SIZE;
   const originZ = chunkZ * CHUNK_SIZE;
-
-  const h = TILE_HEIGHT;
   const s = TILE_SIZE;
 
   for (let lz = 0; lz < CHUNK_SIZE; lz++) {
@@ -137,45 +118,123 @@ export function buildChunkMesh(chunkX, chunkZ) {
       if (block === BLOCK.AIR) continue;
 
       const baseRGB = BLOCK_COLORS[block] ?? [255, 0, 255];
-      const topColor = toColor(baseRGB, 1.0);
-      const sideColor = toColor(baseRGB, BLOCK_SIDE_TINT);
+      const groundColor = toColor(baseRGB, 1.0);
 
       const x0 = lx * s;
       const x1 = x0 + s;
       const z0 = lz * s;
       const z1 = z0 + s;
-      const y0 = 0;
-      const y1 = h;
 
-      pushQuad(positions, normals, colors, indices,
-        [x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1],
-        [0, 1, 0], topColor);
+      const yTop = groundSurfaceHeight(block);
 
-      if (blockAt(wx, wz - 1) === BLOCK.AIR) {
-        pushQuad(positions, normals, colors, indices,
-          [x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0],
-          [0, 0, -1], sideColor);
-      }
-      if (blockAt(wx, wz + 1) === BLOCK.AIR) {
-        pushQuad(positions, normals, colors, indices,
-          [x1, y0, z1], [x0, y0, z1], [x0, y1, z1], [x1, y1, z1],
-          [0, 0, 1], sideColor);
-      }
-      if (blockAt(wx - 1, wz) === BLOCK.AIR) {
-        pushQuad(positions, normals, colors, indices,
-          [x0, y0, z1], [x0, y0, z0], [x0, y1, z0], [x0, y1, z1],
-          [-1, 0, 0], sideColor);
-      }
-      if (blockAt(wx + 1, wz) === BLOCK.AIR) {
-        pushQuad(positions, normals, colors, indices,
-          [x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0],
-          [1, 0, 0], sideColor);
+      // Which side faces of the ground box to draw. We show a side
+      // whenever the neighboring tile has a lower surface or is air.
+      let sideFlags = 1; // top always
+      const neighborTop = (nwx, nwz) => {
+        const nb = blockAt(nwx, nwz);
+        if (nb === BLOCK.AIR) return -1;
+        return groundSurfaceHeight(nb);
+      };
+      if (neighborTop(wx, wz - 1) < yTop) sideFlags |= 2;
+      if (neighborTop(wx, wz + 1) < yTop) sideFlags |= 4;
+      if (neighborTop(wx - 1, wz) < yTop) sideFlags |= 8;
+      if (neighborTop(wx + 1, wz) < yTop) sideFlags |= 16;
+
+      pushBox(positions, normals, colors, indices,
+        x0, x1, 0, yTop, z0, z1, groundColor, sideFlags);
+
+      // Structures rising off the tile (walls, trees, ships, etc.)
+      const struct = structureAt(wx, wz);
+      const roof = roofAt(wx, wz);
+
+      if (struct !== 0 && struct !== STRUCTURE.NONE) {
+        const structRGB = BLOCK_COLORS[struct] ?? [255, 0, 255];
+        const structColor = toColor(structRGB, 1.0);
+        const sh = STRUCTURE_HEIGHTS[struct] ?? 1;
+        // Cull faces where an adjacent tile has the same structure
+        // of the same height, so a wall run reads as one block.
+        let sFlags = 1; // top visible
+        const nStruct = (nwx, nwz) => structureAt(nwx, nwz);
+        if (nStruct(wx, wz - 1) !== struct) sFlags |= 2;
+        if (nStruct(wx, wz + 1) !== struct) sFlags |= 4;
+        if (nStruct(wx - 1, wz) !== struct) sFlags |= 8;
+        if (nStruct(wx + 1, wz) !== struct) sFlags |= 16;
+        // Special-case narrow structures so they look right centered.
+        if (struct === STRUCTURE.TREE_TRUNK) {
+          const cx = lx + 0.5, cz = lz + 0.5;
+          pushBox(positions, normals, colors, indices,
+            cx - 0.15, cx + 0.15, yTop, yTop + sh, cz - 0.15, cz + 0.15, structColor, 31);
+        } else if (struct === STRUCTURE.MAST) {
+          const cx = lx + 0.5, cz = lz + 0.5;
+          pushBox(positions, normals, colors, indices,
+            cx - 0.08, cx + 0.08, yTop, yTop + sh, cz - 0.08, cz + 0.08, structColor, 31);
+        } else if (struct === STRUCTURE.FENCE) {
+          pushBox(positions, normals, colors, indices,
+            x0, x1, yTop, yTop + sh, z0 + 0.4, z1 - 0.4, structColor, 31);
+        } else if (struct === STRUCTURE.FOUNTAIN) {
+          pushBox(positions, normals, colors, indices,
+            x0 + 0.05, x1 - 0.05, yTop, yTop + sh, z0 + 0.05, z1 - 0.05, structColor, 31);
+          // Small water crown in the middle.
+          const wcolor = toColor(BLOCK_COLORS[BLOCK.WATER]);
+          pushBox(positions, normals, colors, indices,
+            x0 + 0.25, x1 - 0.25, yTop + sh, yTop + sh + 0.05, z0 + 0.25, z1 - 0.25, wcolor, 31);
+        } else if (struct === STRUCTURE.SHIP_HULL) {
+          // Ship sits partially submerged; full-tile so hulls fuse.
+          pushBox(positions, normals, colors, indices,
+            x0, x1, 0.55, 0.55 + sh, z0, z1, structColor, sFlags | 32);
+        } else if (struct === STRUCTURE.DOCK_WOOD) {
+          pushBox(positions, normals, colors, indices,
+            x0, x1, 0.9, 0.9 + sh, z0, z1, structColor, 31);
+        } else {
+          pushBox(positions, normals, colors, indices,
+            x0, x1, yTop, yTop + sh, z0, z1, structColor, sFlags);
+        }
       }
 
-      // Decorations sitting on top of the tile.
-      if (block === BLOCK.GRASS && tileHash(wx, wz, 3) < 0.16) {
+      if (roof !== 0) {
+        const roofRGB = BLOCK_COLORS[roof] ?? [255, 0, 255];
+        const roofColor = toColor(roofRGB, 1.0);
+        const rh = STRUCTURE_HEIGHTS[roof] ?? 0.5;
+
+        if (roof === STRUCTURE.SAIL) {
+          // Mast pole + sail sitting on top of the ship deck.
+          const hullTopY = 0.55 + STRUCTURE_HEIGHTS[STRUCTURE.SHIP_HULL]
+            + STRUCTURE_HEIGHTS[STRUCTURE.SHIP_DECK];
+          const cx = lx + 0.5, cz = lz + 0.5;
+          const mastColor = toColor(BLOCK_COLORS[STRUCTURE.MAST]);
+          pushBox(positions, normals, colors, indices,
+            cx - 0.06, cx + 0.06, hullTopY, hullTopY + 2.6, cz - 0.06, cz + 0.06, mastColor, 31);
+          pushBox(positions, normals, colors, indices,
+            x0 + 0.35, x1 - 0.35, hullTopY + 1.0, hullTopY + 1.0 + rh,
+            z0 - 0.3, z1 + 0.3, roofColor, 31);
+        } else if (roof === STRUCTURE.SHIP_DECK) {
+          const deckY = 0.55 + STRUCTURE_HEIGHTS[STRUCTURE.SHIP_HULL];
+          pushBox(positions, normals, colors, indices,
+            x0, x1, deckY, deckY + rh, z0, z1, roofColor, 31);
+        } else if (roof === STRUCTURE.TREE_LEAVES) {
+          const cx = lx + 0.5, cz = lz + 0.5;
+          const trunkTop = yTop + STRUCTURE_HEIGHTS[STRUCTURE.TREE_TRUNK];
+          pushBox(positions, normals, colors, indices,
+            cx - 0.55, cx + 0.55, trunkTop, trunkTop + rh,
+            cz - 0.55, cz + 0.55, roofColor, 31);
+        } else {
+          // Building roof: sits at the wall height associated with
+          // this roof type, so interior cells lift too.
+          const baseY = yTop + (ROOF_BASE_HEIGHT[roof] ?? 2.3);
+          let rFlags = 1 | 32;
+          if (roofAt(wx, wz - 1) !== roof) rFlags |= 2;
+          if (roofAt(wx, wz + 1) !== roof) rFlags |= 4;
+          if (roofAt(wx - 1, wz) !== roof) rFlags |= 8;
+          if (roofAt(wx + 1, wz) !== roof) rFlags |= 16;
+          pushBox(positions, normals, colors, indices,
+            x0, x1, baseY, baseY + rh, z0, z1, roofColor, rFlags);
+        }
+      }
+
+      // Countryside decorations only outside city bounds.
+      if (block === BLOCK.GRASS && struct === 0 && roof === 0 && tileHash(wx, wz, 3) < 0.14) {
         addGrassTuft(positions, normals, colors, indices, lx, lz, wx, wz);
-      } else if (block === BLOCK.STONE && tileHash(wx, wz, 5) < 0.08) {
+      } else if (block === BLOCK.STONE && struct === 0 && tileHash(wx, wz, 5) < 0.08) {
         addPebble(positions, normals, colors, indices, lx, lz, wx, wz);
       }
     }
