@@ -65,6 +65,28 @@ canvas#game {
   pointer-events: none;
 }
 
+#minimap {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0) + 12px);
+  right: calc(env(safe-area-inset-right, 0) + 12px);
+  width: 160px;
+  height: 160px;
+  z-index: 8;
+  background: rgba(15, 18, 22, 0.75);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  image-rendering: pixelated;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 600px) {
+  #minimap {
+    width: 120px;
+    height: 120px;
+  }
+}
+
 #dpad {
   position: fixed;
   left: calc(env(safe-area-inset-left, 0) + 16px);

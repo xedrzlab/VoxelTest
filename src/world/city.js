@@ -19,6 +19,13 @@ const structure = new Uint8Array(W * H);
 // Roof cells: painted after walls so we can lift a full building's roof
 // on top of its interior floor as a separate structure block.
 const roof = new Uint8Array(W * H);
+// Small decorations layered onto tiles (chimneys, lampposts, barrels,
+// flowers, bushes) that render on top of ground and don't replace walls.
+const prop = new Uint8Array(W * H);
+// Chimneys need to sit on TOP of the roof, so we store them separately
+// from prop (props are on-ground) and let the mesher render them above
+// the roof height for that building.
+const chimney = new Uint8Array(W * H);
 
 function idx(lx, lz) {
   return lz * W + lx;
@@ -38,6 +45,14 @@ function setStructure(lx, lz, s) {
 
 function setRoof(lx, lz, r) {
   if (inBounds(lx, lz)) roof[idx(lx, lz)] = r;
+}
+
+function setProp(lx, lz, p) {
+  if (inBounds(lx, lz)) prop[idx(lx, lz)] = p;
+}
+
+function setChimney(lx, lz, c) {
+  if (inBounds(lx, lz)) chimney[idx(lx, lz)] = c;
 }
 
 function fillRect(x0, z0, x1, z1, b) {
@@ -68,12 +83,39 @@ function building(x0, z0, x1, z1, wall, roofType, floor = BLOCK.FLOOR_WOOD, door
   fillRect(x0, z0, x1, z1, floor);
   strokeRect(x0, z0, x1, z1, wall);
   fillRoof(x0, z0, x1, z1, roofType);
+
+  // Chimney at one of the interior corners so it sits ON the roof.
+  const cx = x0 + 1;
+  const cz = z0 + 1;
+  if (cx < x1 && cz < z1) setChimney(cx, cz, STRUCTURE.CHIMNEY);
+
   if (door) {
     const [side, off] = door;
-    if (side === 'N') setStructure(x0 + off, z0, STRUCTURE.NONE);
-    if (side === 'S') setStructure(x0 + off, z1, STRUCTURE.NONE);
-    if (side === 'W') setStructure(x0, z0 + off, STRUCTURE.NONE);
-    if (side === 'E') setStructure(x1, z0 + off, STRUCTURE.NONE);
+    let dx = 0, dz = 0;
+    if (side === 'N') { dx = x0 + off; dz = z0; }
+    if (side === 'S') { dx = x0 + off; dz = z1; }
+    if (side === 'W') { dx = x0; dz = z0 + off; }
+    if (side === 'E') { dx = x1; dz = z0 + off; }
+    setStructure(dx, dz, STRUCTURE.NONE);
+    // Paint the doorway ground so it reads as an entry, and drop a
+    // couple of props flanking the door on the outside.
+    setGround(dx, dz, BLOCK.COBBLE);
+    const outside = { N: [0, -1], S: [0, 1], W: [-1, 0], E: [1, 0] }[side];
+    const [ox, oz] = outside;
+    // Alternate props so different buildings feel different.
+    const salt = (dx * 73 + dz * 149) & 3;
+    if (salt === 0) {
+      setProp(dx + ox, dz + oz, STRUCTURE.LAMPPOST);
+    } else if (salt === 1) {
+      setProp(dx + ox + oz, dz + oz + ox, STRUCTURE.BARREL);
+      setProp(dx + ox - oz, dz + oz - ox, STRUCTURE.FLOWER_POT);
+    } else if (salt === 2) {
+      setProp(dx + ox + oz, dz + oz + ox, STRUCTURE.CRATE);
+      setProp(dx + ox - oz, dz + oz - ox, STRUCTURE.LAMPPOST);
+    } else {
+      setProp(dx + ox + oz, dz + oz + ox, STRUCTURE.FLOWER_POT);
+      setProp(dx + ox - oz, dz + oz - ox, STRUCTURE.BUSH);
+    }
   }
 }
 
@@ -311,6 +353,30 @@ function build() {
     if (ground[idx(x, z)] === BLOCK.GRASS && structure[idx(x, z)] === 0) tree(x, z);
   }
 
+  // ── Street lamps along Main Street and Temple Street ────────────
+  for (let x = HS_X + 4; x < EAST; x += 6) {
+    setProp(x, MS_Z - 3, STRUCTURE.LAMPPOST);
+    setProp(x, MS_Z + 3, STRUCTURE.LAMPPOST);
+  }
+  for (let z = 6; z < MS_Z - 3; z += 6) {
+    setProp(TS_X - 3, z, STRUCTURE.LAMPPOST);
+    setProp(TS_X + 3, z, STRUCTURE.LAMPPOST);
+  }
+
+  // Flower planters and benches around the temple plaza fountain.
+  setProp(32, 36, STRUCTURE.FLOWER_POT);
+  setProp(37, 36, STRUCTURE.FLOWER_POT);
+  setProp(32, 37, STRUCTURE.BUSH);
+  setProp(37, 37, STRUCTURE.BUSH);
+  setProp(30, 34, STRUCTURE.LAMPPOST);
+  setProp(39, 34, STRUCTURE.LAMPPOST);
+
+  // Barrels/crates on the harbour dock.
+  setProp(15, MS_Z, STRUCTURE.BARREL);
+  setProp(15, MS_Z + 1, STRUCTURE.CRATE);
+  setProp(15, MS_Z + 2, STRUCTURE.BARREL);
+  setProp(15, MS_Z - 1, STRUCTURE.CRATE);
+
   // ── Bridges out of the four gates: paved connecting road ─────────
   for (let x = EAST + 2; x < W; x++) setGround(x, MS_Z, BLOCK.ROAD);
   for (let x = EAST + 2; x < W; x++) setGround(x, MS_Z - 1, BLOCK.ROAD);
@@ -340,6 +406,20 @@ export function cityRoof(wx, wz) {
   const lz = wz - CITY_MIN_Z;
   if (!inBounds(lx, lz)) return 0;
   return roof[idx(lx, lz)];
+}
+
+export function cityProp(wx, wz) {
+  const lx = wx - CITY_MIN_X;
+  const lz = wz - CITY_MIN_Z;
+  if (!inBounds(lx, lz)) return 0;
+  return prop[idx(lx, lz)];
+}
+
+export function cityChimney(wx, wz) {
+  const lx = wx - CITY_MIN_X;
+  const lz = wz - CITY_MIN_Z;
+  if (!inBounds(lx, lz)) return 0;
+  return chimney[idx(lx, lz)];
 }
 
 export function isInCity(wx, wz) {

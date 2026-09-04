@@ -53,6 +53,13 @@ export const STRUCTURE = {
   SAIL: 112,
   FOUNTAIN: 113,
   FENCE: 114,
+  CHIMNEY: 115,
+  LAMPPOST: 116,
+  BARREL: 117,
+  FLOWER_POT: 118,
+  BUSH: 119,
+  SIGN: 120,
+  CRATE: 121,
 };
 
 export const BLOCK_COLORS = {
@@ -80,6 +87,13 @@ export const BLOCK_COLORS = {
   [STRUCTURE.SAIL]: [0xf0, 0xea, 0xd6],
   [STRUCTURE.FOUNTAIN]: [0xb8, 0xb2, 0xa8],
   [STRUCTURE.FENCE]: [0x6a, 0x48, 0x28],
+  [STRUCTURE.CHIMNEY]: [0x54, 0x50, 0x4a],
+  [STRUCTURE.LAMPPOST]: [0x3a, 0x2c, 0x1e],
+  [STRUCTURE.BARREL]: [0x7a, 0x50, 0x22],
+  [STRUCTURE.FLOWER_POT]: [0x8a, 0x3a, 0x24],
+  [STRUCTURE.BUSH]: [0x2c, 0x66, 0x30],
+  [STRUCTURE.SIGN]: [0x6a, 0x48, 0x28],
+  [STRUCTURE.CRATE]: [0x8a, 0x62, 0x30],
 };
 
 export const BLOCK_GROUND_SPEED = {
@@ -110,6 +124,13 @@ export const STRUCTURE_HEIGHTS = {
   [STRUCTURE.SAIL]: 1.2,
   [STRUCTURE.FOUNTAIN]: 0.6,
   [STRUCTURE.FENCE]: 0.7,
+  [STRUCTURE.CHIMNEY]: 0.9,
+  [STRUCTURE.LAMPPOST]: 2.2,
+  [STRUCTURE.BARREL]: 0.5,
+  [STRUCTURE.FLOWER_POT]: 0.35,
+  [STRUCTURE.BUSH]: 0.5,
+  [STRUCTURE.SIGN]: 0.9,
+  [STRUCTURE.CRATE]: 0.4,
 };
 
 // Structures the player can walk through (visual only).
@@ -118,6 +139,8 @@ export const STRUCTURE_PASSABLE = new Set([
   STRUCTURE.ROOF_GRAY,
   STRUCTURE.ROOF_WHITE,
   STRUCTURE.TREE_LEAVES,
+  STRUCTURE.FLOWER_POT,
+  STRUCTURE.BUSH,
 ]);
 
 // The wall height a given roof type is supposed to sit on top of.

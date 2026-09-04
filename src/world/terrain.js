@@ -1,6 +1,13 @@
 import { createNoise2D } from 'simplex-noise';
 import { BLOCK, WORLD_SIZE_TILES } from '../config.js';
-import { cityGround, cityRoof, cityStructure, isInCity } from './city.js';
+import {
+  cityChimney,
+  cityGround,
+  cityProp,
+  cityRoof,
+  cityStructure,
+  isInCity,
+} from './city.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -59,6 +66,16 @@ export function structureAt(worldX, worldZ) {
 export function roofAt(worldX, worldZ) {
   if (!isInCity(worldX, worldZ)) return 0;
   return cityRoof(worldX, worldZ);
+}
+
+export function propAt(worldX, worldZ) {
+  if (!isInCity(worldX, worldZ)) return 0;
+  return cityProp(worldX, worldZ);
+}
+
+export function chimneyAt(worldX, worldZ) {
+  if (!isInCity(worldX, worldZ)) return 0;
+  return cityChimney(worldX, worldZ);
 }
 
 export function isSolid(worldX, worldZ) {

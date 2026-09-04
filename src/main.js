@@ -2,7 +2,10 @@ import * as THREE from 'three';
 import { WORLD_SIZE_TILES } from './config.js';
 import { createIsometricCamera, followTarget, resizeCamera } from './camera.js';
 import { InputController } from './input.js';
+import { MiniMap } from './minimap.js';
 import { Player } from './player.js';
+import { roofMaterial } from './world/chunk.js';
+import { roofAt } from './world/terrain.js';
 import { World } from './world/world.js';
 
 function init() {
@@ -15,7 +18,6 @@ function init() {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x9ec9f0);
 
-  // Lights: a soft hemisphere + directional sun for the isometric shading.
   const hemi = new THREE.HemisphereLight(0xffffff, 0x334455, 0.6);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -27,11 +29,12 @@ function init() {
   const world = new World(scene);
   const startTile = Math.floor(WORLD_SIZE_TILES / 2);
   const player = new Player(scene, startTile, startTile);
-
   world.update(player.tileX, player.tileZ);
 
   const input = new InputController();
   const statsEl = document.getElementById('stats');
+  const minimap = new MiniMap(document.getElementById('minimap'), player);
+  minimap.render(true);
 
   window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight, false);
@@ -40,28 +43,23 @@ function init() {
 
   let last = performance.now();
   let frame = 0;
-  let fpsAcc = 0;
-  let fpsCount = 0;
-  let fpsShown = 0;
+  let fpsAcc = 0, fpsCount = 0, fpsShown = 0;
+  // Smooth the roof opacity so it fades in/out over ~100 ms.
+  let roofOpacityTarget = 1;
 
   function tick(now) {
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
 
-    // Advance any in-progress step.
     player.update(now);
 
-    // If idle and a direction is held, start the next step.
     if (!player.isStepping()) {
       const dir = input.currentDirection();
       if (dir) {
         const nx = player.tileX + dir.x;
         const nz = player.tileZ + dir.z;
-        // Diagonal step needs both adjacent cardinal tiles clear too, so
-        // the character never squeezes through a corner.
         const diagonalOk =
-          dir.x === 0 ||
-          dir.z === 0 ||
+          dir.x === 0 || dir.z === 0 ||
           (world.isWalkable(player.tileX + dir.x, player.tileZ) &&
             world.isWalkable(player.tileX, player.tileZ + dir.z));
         if (world.isWalkable(nx, nz) && diagonalOk) {
@@ -74,7 +72,16 @@ function init() {
     world.update(player.tileX, player.tileZ);
     followTarget(camera, player.position);
 
+    // Fade roofs when the player is standing on a roofed tile.
+    const underRoof = roofAt(player.tileX, player.tileZ) !== 0;
+    roofOpacityTarget = underRoof ? 0.18 : 1;
+    const k = 1 - Math.exp(-dt * 10);
+    roofMaterial.opacity += (roofOpacityTarget - roofMaterial.opacity) * k;
+    roofMaterial.transparent = roofMaterial.opacity < 0.99;
+    roofMaterial.needsUpdate = false;
+
     renderer.render(scene, camera);
+    minimap.render();
 
     fpsAcc += dt;
     fpsCount++;
@@ -86,8 +93,8 @@ function init() {
     }
     if (statsEl && (frame & 7) === 0) {
       statsEl.textContent =
-        `v0.2.0  ·  fps ${fpsShown}  ·  tile ${player.tileX},${player.tileZ}  ·  ` +
-        `chunks ${world.loadedChunkCount}`;
+        `v0.2.1  ·  fps ${fpsShown}  ·  tile ${player.tileX},${player.tileZ}  ·  ` +
+        `chunks ${world.loadedChunkCount}${underRoof ? '  ·  indoors' : ''}`;
     }
 
     requestAnimationFrame(tick);
