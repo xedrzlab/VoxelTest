@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { WORLD_SIZE_TILES } from './config.js';
 import { createIsometricCamera, followTarget, resizeCamera } from './camera.js';
+import { Dragon } from './dragon.js';
 import { InputController } from './input.js';
 import { MiniMap } from './minimap.js';
 import { Player } from './player.js';
@@ -31,6 +32,11 @@ function init() {
   const player = new Player(scene, startTile, startTile);
   world.update(player.tileX, player.tileZ);
 
+  // Spawn a green dragon on the countryside east of the city so the
+  // player can walk out the East Gate along Main Street and meet it.
+  const dragon = new Dragon(scene, 112, 64);
+  const monsters = [dragon];
+
   const input = new InputController();
   const statsEl = document.getElementById('stats');
   const minimap = new MiniMap(document.getElementById('minimap'), player);
@@ -58,16 +64,21 @@ function init() {
       if (dir) {
         const nx = player.tileX + dir.x;
         const nz = player.tileZ + dir.z;
+        const monsterHere = (tx, tz) => monsters.some((m) => m.occupies(tx, tz));
         const diagonalOk =
           dir.x === 0 || dir.z === 0 ||
           (world.isWalkable(player.tileX + dir.x, player.tileZ) &&
-            world.isWalkable(player.tileX, player.tileZ + dir.z));
-        if (world.isWalkable(nx, nz) && diagonalOk) {
+            !monsterHere(player.tileX + dir.x, player.tileZ) &&
+            world.isWalkable(player.tileX, player.tileZ + dir.z) &&
+            !monsterHere(player.tileX, player.tileZ + dir.z));
+        if (world.isWalkable(nx, nz) && diagonalOk && !monsterHere(nx, nz)) {
           const destBlock = world.blockAt(nx, nz);
           player.beginStep(nx, nz, destBlock, now);
         }
       }
     }
+
+    for (const m of monsters) m.update(now, player.tileX, player.tileZ);
 
     world.update(player.tileX, player.tileZ);
     followTarget(camera, player.position);
@@ -96,7 +107,7 @@ function init() {
     }
     if (statsEl && (frame & 7) === 0) {
       statsEl.textContent =
-        `v0.2.2  ·  fps ${fpsShown}  ·  tile ${player.tileX},${player.tileZ}  ·  ` +
+        `v0.3.0  ·  fps ${fpsShown}  ·  tile ${player.tileX},${player.tileZ}  ·  ` +
         `chunks ${world.loadedChunkCount}${underRoof ? '  ·  indoors' : ''}`;
     }
 
