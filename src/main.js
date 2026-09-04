@@ -72,13 +72,16 @@ function init() {
     world.update(player.tileX, player.tileZ);
     followTarget(camera, player.position);
 
-    // Fade roofs when the player is standing on a roofed tile.
+    // Fully hide roofs when the player is standing on a roofed tile.
     const underRoof = roofAt(player.tileX, player.tileZ) !== 0;
-    roofOpacityTarget = underRoof ? 0.18 : 1;
-    const k = 1 - Math.exp(-dt * 10);
+    roofOpacityTarget = underRoof ? 0 : 1;
+    const k = 1 - Math.exp(-dt * 12);
     roofMaterial.opacity += (roofOpacityTarget - roofMaterial.opacity) * k;
-    roofMaterial.transparent = roofMaterial.opacity < 0.99;
-    roofMaterial.needsUpdate = false;
+    // depthWrite off while translucent so a mid-fade roof doesn't occlude
+    // the interior geometry behind it.
+    roofMaterial.transparent = roofMaterial.opacity < 0.999;
+    roofMaterial.depthWrite = !roofMaterial.transparent;
+    roofMaterial.visible = roofMaterial.opacity > 0.005;
 
     renderer.render(scene, camera);
     minimap.render();
@@ -93,7 +96,7 @@ function init() {
     }
     if (statsEl && (frame & 7) === 0) {
       statsEl.textContent =
-        `v0.2.1  ·  fps ${fpsShown}  ·  tile ${player.tileX},${player.tileZ}  ·  ` +
+        `v0.2.2  ·  fps ${fpsShown}  ·  tile ${player.tileX},${player.tileZ}  ·  ` +
         `chunks ${world.loadedChunkCount}${underRoof ? '  ·  indoors' : ''}`;
     }
 

@@ -75,47 +75,117 @@ function fillRoof(x0, z0, x1, z1, r) {
 }
 
 /**
- * Build a house: perimeter walls of `wall`, interior floor of `floor`,
- * roof over the whole footprint of `roofType`. Door is a gap in the
- * perimeter at the given side ('N'|'S'|'E'|'W') and offset from x0/z0.
+ * Build a house. Purpose drives door decorations, chimney placement,
+ * and any interior props — every prop is placed because of what the
+ * building IS, not by hashing coordinates.
+ *
+ * Purposes: 'castle', 'hq', 'church', 'temple', 'tavern', 'shop',
+ * 'mill', 'guild', 'apt', 'depot', 'library'.
  */
-function building(x0, z0, x1, z1, wall, roofType, floor = BLOCK.FLOOR_WOOD, door = null) {
+function building(x0, z0, x1, z1, wall, roofType, floor, door, purpose) {
   fillRect(x0, z0, x1, z1, floor);
   strokeRect(x0, z0, x1, z1, wall);
   fillRoof(x0, z0, x1, z1, roofType);
 
-  // Chimney at one of the interior corners so it sits ON the roof.
-  const cx = x0 + 1;
-  const cz = z0 + 1;
-  if (cx < x1 && cz < z1) setChimney(cx, cz, STRUCTURE.CHIMNEY);
+  // Chimney position depends on purpose. Businesses that need heat/smoke
+  // (tavern, bakery/mill, forge-shop) get one near the hearth wall;
+  // castles and temples get one on a rear corner. Apartments get one
+  // per unit (handled elsewhere). Guild/temple/church skip it.
+  if (purpose === 'tavern' || purpose === 'mill' || purpose === 'shop'
+      || purpose === 'depot' || purpose === 'hq' || purpose === 'castle') {
+    const cx = x0 + 1;
+    const cz = z0 + 1;
+    if (cx < x1 && cz < z1) setChimney(cx, cz, STRUCTURE.CHIMNEY);
+  }
 
-  if (door) {
-    const [side, off] = door;
-    let dx = 0, dz = 0;
-    if (side === 'N') { dx = x0 + off; dz = z0; }
-    if (side === 'S') { dx = x0 + off; dz = z1; }
-    if (side === 'W') { dx = x0; dz = z0 + off; }
-    if (side === 'E') { dx = x1; dz = z0 + off; }
-    setStructure(dx, dz, STRUCTURE.NONE);
-    // Paint the doorway ground so it reads as an entry, and drop a
-    // couple of props flanking the door on the outside.
-    setGround(dx, dz, BLOCK.COBBLE);
-    const outside = { N: [0, -1], S: [0, 1], W: [-1, 0], E: [1, 0] }[side];
-    const [ox, oz] = outside;
-    // Alternate props so different buildings feel different.
-    const salt = (dx * 73 + dz * 149) & 3;
-    if (salt === 0) {
-      setProp(dx + ox, dz + oz, STRUCTURE.LAMPPOST);
-    } else if (salt === 1) {
-      setProp(dx + ox + oz, dz + oz + ox, STRUCTURE.BARREL);
-      setProp(dx + ox - oz, dz + oz - ox, STRUCTURE.FLOWER_POT);
-    } else if (salt === 2) {
-      setProp(dx + ox + oz, dz + oz + ox, STRUCTURE.CRATE);
-      setProp(dx + ox - oz, dz + oz - ox, STRUCTURE.LAMPPOST);
-    } else {
-      setProp(dx + ox + oz, dz + oz + ox, STRUCTURE.FLOWER_POT);
-      setProp(dx + ox - oz, dz + oz - ox, STRUCTURE.BUSH);
-    }
+  if (!door) return;
+
+  const [side, off] = door;
+  let dx = 0, dz = 0;
+  if (side === 'N') { dx = x0 + off; dz = z0; }
+  if (side === 'S') { dx = x0 + off; dz = z1; }
+  if (side === 'W') { dx = x0; dz = z0 + off; }
+  if (side === 'E') { dx = x1; dz = z0 + off; }
+  setStructure(dx, dz, STRUCTURE.NONE);
+  setGround(dx, dz, BLOCK.COBBLE);
+
+  // Vectors pointing out of the door and along the wall.
+  const outside = { N: [0, -1], S: [0, 1], W: [-1, 0], E: [1, 0] }[side];
+  const [ox, oz] = outside;
+  const [px, pz] = [-oz, ox]; // perpendicular (along the wall)
+
+  const leftX = dx + ox + px, leftZ = dz + oz + pz;
+  const rightX = dx + ox - px, rightZ = dz + oz - pz;
+  const frontX = dx + ox * 2, frontZ = dz + oz * 2;
+
+  const put = (x, z, s) => {
+    if (!inBounds(x, z)) return;
+    if (structure[idx(x, z)] === 0 && prop[idx(x, z)] === 0) setProp(x, z, s);
+  };
+
+  // Prop plan per purpose. Read this as "why is this here":
+  // A working tavern serves drinks → barrels of ale by the door, a
+  // lamp so patrons can find the entry after dark, a hanging sign so
+  // travellers know what it is. A shop sells wares → a crate of stock
+  // outside plus a sign. A mill grinds grain → barrels of flour and a
+  // grain crate. Military HQ → crates of supplies + a lamp for the
+  // watch. Castle → two lamps flanking the keep entrance, no clutter.
+  // Church/temple → flowers and offerings. Apartments → one flower pot
+  // by the door because the resident put it there. Guilds → a lamp,
+  // an herb bush, and a sign identifying the guild.
+  switch (purpose) {
+    case 'tavern':
+      put(leftX, leftZ, STRUCTURE.BARREL);
+      put(rightX, rightZ, STRUCTURE.BARREL);
+      put(frontX, frontZ, STRUCTURE.SIGN);
+      // Extra barrel row along the tavern's outside wall.
+      if (side === 'S') put(x0 + 1, z1 + 1, STRUCTURE.BARREL);
+      if (side === 'N') put(x1 - 1, z0 - 1, STRUCTURE.BARREL);
+      break;
+    case 'shop':
+      put(leftX, leftZ, STRUCTURE.LAMPPOST);
+      put(rightX, rightZ, STRUCTURE.CRATE);
+      put(frontX, frontZ, STRUCTURE.SIGN);
+      break;
+    case 'depot':
+      // Depot stores adventurers' loot — crates, crates, and a lamp.
+      put(leftX, leftZ, STRUCTURE.CRATE);
+      put(rightX, rightZ, STRUCTURE.CRATE);
+      put(frontX, frontZ, STRUCTURE.LAMPPOST);
+      break;
+    case 'library':
+      put(leftX, leftZ, STRUCTURE.LAMPPOST);
+      put(rightX, rightZ, STRUCTURE.FLOWER_POT);
+      break;
+    case 'mill':
+      put(leftX, leftZ, STRUCTURE.BARREL);
+      put(rightX, rightZ, STRUCTURE.BARREL);
+      put(frontX, frontZ, STRUCTURE.CRATE);
+      break;
+    case 'hq':
+      put(leftX, leftZ, STRUCTURE.LAMPPOST);
+      put(rightX, rightZ, STRUCTURE.CRATE);
+      break;
+    case 'castle':
+      // Ceremonial: two matched lamps, nothing else.
+      put(leftX, leftZ, STRUCTURE.LAMPPOST);
+      put(rightX, rightZ, STRUCTURE.LAMPPOST);
+      break;
+    case 'temple':
+    case 'church':
+      // Sacred entry: flowers on both sides.
+      put(leftX, leftZ, STRUCTURE.FLOWER_POT);
+      put(rightX, rightZ, STRUCTURE.FLOWER_POT);
+      break;
+    case 'guild':
+      put(leftX, leftZ, STRUCTURE.LAMPPOST);
+      put(rightX, rightZ, STRUCTURE.BUSH);
+      put(frontX, frontZ, STRUCTURE.SIGN);
+      break;
+    case 'apt':
+      // Residents tend a small plant by their front door.
+      put(leftX, leftZ, STRUCTURE.FLOWER_POT);
+      break;
   }
 }
 
@@ -269,113 +339,188 @@ function build() {
   setRoof(shipX + 1, shipZ + 4, STRUCTURE.SAIL);
 
   // ── Castle district (NW) ─────────────────────────────────────────
-  // Big castle keep with thicker walls and gray roof.
-  building(20, 6, 30, 14, STRUCTURE.WALL_CASTLE, STRUCTURE.ROOF_GRAY, BLOCK.FLOOR_STONE, ['S', 5]);
+  building(20, 6, 30, 14, STRUCTURE.WALL_CASTLE, STRUCTURE.ROOF_GRAY,
+    BLOCK.FLOOR_STONE, ['S', 5], 'castle');
   // Castle courtyard cobble in front.
   fillRect(21, 15, 29, 18, BLOCK.COBBLE);
-  // Watchtowers at the castle corners (bumped up as extra wall stubs).
   setStructure(20, 6, STRUCTURE.WALL_CASTLE);
   setStructure(30, 6, STRUCTURE.WALL_CASTLE);
-  // Royal Army HQ next door.
-  building(32, 6, 40, 13, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_STONE, ['S', 4]);
-  // Church.
-  building(15, 10, 19, 16, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE, BLOCK.FLOOR_STONE, ['S', 2]);
+  // Ceremonial lamps at the courtyard corners and a pair of hedges
+  // framing the walk to the keep — this is a formal royal approach.
+  setProp(21, 17, STRUCTURE.LAMPPOST);
+  setProp(29, 17, STRUCTURE.LAMPPOST);
+  setProp(23, 16, STRUCTURE.BUSH);
+  setProp(27, 16, STRUCTURE.BUSH);
+  // Royal Army HQ next door — troops stack supply crates outside.
+  building(32, 6, 40, 13, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_STONE, ['S', 4], 'hq');
+  setProp(33, 15, STRUCTURE.CRATE);
+  setProp(39, 15, STRUCTURE.CRATE);
+  // Church — modest stone chapel with a garden path.
+  building(15, 10, 19, 16, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
+    BLOCK.FLOOR_STONE, ['S', 2], 'church');
 
   // ── Northern shops along Temple Street ───────────────────────────
-  building(24, 20, 30, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['E', 3]);
-  building(38, 20, 44, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['W', 3]);
+  building(24, 20, 30, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['E', 3], 'shop');
+  building(38, 20, 44, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['W', 3], 'shop');
 
   // ── Mill Avenue district (NE) ────────────────────────────────────
-  building(46, 8, 52, 14, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['S', 3]);
-  building(54, 8, 62, 14, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['S', 4]);
-  building(46, 18, 52, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['S', 3]);
-  building(54, 18, 62, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['S', 4]);
-  // Mill: circular-ish stone building next to Mill Avenue.
-  building(56, 6, 60, 10, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_STONE, ['S', 2]);
+  building(46, 8, 52, 14, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['S', 3], 'shop');
+  building(54, 8, 62, 14, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['S', 4], 'shop');
+  building(46, 18, 52, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['S', 3], 'shop');
+  building(54, 18, 62, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['S', 4], 'shop');
+  // Mill — sacks of grain queued outside for the miller.
+  building(56, 6, 60, 10, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_STONE, ['S', 2], 'mill');
+  setProp(57, 12, STRUCTURE.CRATE);
+  setProp(59, 12, STRUCTURE.CRATE);
 
   // ── Central temple, right on Main/Temple Street junction ─────────
-  building(29, 28, 39, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE, BLOCK.FLOOR_STONE, ['S', 5]);
-  // Fountain in the plaza south of the temple.
+  building(29, 28, 39, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
+    BLOCK.FLOOR_STONE, ['S', 5], 'temple');
+  // Fountain in the plaza directly south of the temple entrance.
   setStructure(34, 36, STRUCTURE.FOUNTAIN);
   setStructure(35, 36, STRUCTURE.FOUNTAIN);
   setStructure(34, 37, STRUCTURE.FOUNTAIN);
   setStructure(35, 37, STRUCTURE.FOUNTAIN);
+  // Two symmetric planters flanking the plaza + lamps that light the
+  // fountain at night. Planted here because the plaza is symmetric
+  // and readable, not sprinkled.
+  setProp(32, 35, STRUCTURE.FLOWER_POT);
+  setProp(37, 35, STRUCTURE.FLOWER_POT);
+  setProp(32, 38, STRUCTURE.BUSH);
+  setProp(37, 38, STRUCTURE.BUSH);
+  setProp(31, 36, STRUCTURE.LAMPPOST);
+  setProp(38, 36, STRUCTURE.LAMPPOST);
 
-  // ── Depot / library / games hall clustered around the temple ────
-  building(22, 28, 27, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['E', 2]);
-  building(41, 28, 46, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['W', 2]);
-  building(41, 20, 46, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['S', 2]);
+  // ── Depot / library / other civic buildings around the temple ───
+  building(22, 28, 27, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['E', 2], 'depot');
+  building(41, 28, 46, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['W', 2], 'library');
+  building(41, 20, 46, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['S', 2], 'shop');
 
   // ── Frodo's Tavern & shops east of temple ───────────────────────
-  building(48, 28, 55, 32, STRUCTURE.WALL_WOOD, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['S', 3]);
-  building(57, 28, 62, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['S', 2]);
+  building(48, 28, 55, 32, STRUCTURE.WALL_WOOD, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['S', 3], 'tavern');
+  building(57, 28, 62, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['S', 2], 'shop');
 
-  // ── East wall houses row ────────────────────────────────────────
+  // ── East wall houses row (residents live tucked against the wall) ─
   for (let z = 6; z <= H - 8; z += 6) {
-    if (z >= MS_Z - 3 && z <= MS_Z + 3) continue; // don't block the gate
-    building(60, z, 65, z + 4, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['W', 2]);
+    if (z >= MS_Z - 3 && z <= MS_Z + 3) continue;
+    building(60, z, 65, z + 4, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+      BLOCK.FLOOR_WOOD, ['W', 2], 'apt');
   }
 
-  // ── Southern residential (Alai Flats — big dense complex) ───────
-  // Two long apartment blocks running along Upper Swamp Lane.
-  building(22, MS_Z + 4, 38, MS_Z + 9, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['N', 8]);
-  building(22, H - 10, 38, H - 5, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['N', 8]);
-  // Interior walls to make it read as separated apartments.
+  // ── Alai Flats — two dense apartment blocks with per-unit doors ─
+  // Instead of one door per block, cut a door per apartment so each
+  // unit reads as a home. Flower pot beside each door because that's
+  // what a resident would put there.
+  const flatDoors1 = [23, 27, 31, 35, 37];
+  const flatDoors2 = [23, 27, 31, 35, 37];
+  building(22, MS_Z + 4, 38, MS_Z + 9, STRUCTURE.WALL_STONE,
+    STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, null, 'apt');
+  for (const dx of flatDoors1) {
+    setStructure(dx, MS_Z + 4, STRUCTURE.NONE);
+    setGround(dx, MS_Z + 4, BLOCK.COBBLE);
+    setProp(dx - 1, MS_Z + 3, STRUCTURE.FLOWER_POT);
+  }
   for (let x = 26; x <= 36; x += 4) {
     for (let z = MS_Z + 5; z <= MS_Z + 8; z++) setStructure(x, z, STRUCTURE.WALL_STONE);
+  }
+
+  building(22, H - 10, 38, H - 5, STRUCTURE.WALL_STONE,
+    STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, null, 'apt');
+  for (const dx of flatDoors2) {
+    setStructure(dx, H - 10, STRUCTURE.NONE);
+    setGround(dx, H - 10, BLOCK.COBBLE);
+    setProp(dx - 1, H - 11, STRUCTURE.FLOWER_POT);
+  }
+  for (let x = 26; x <= 36; x += 4) {
     for (let z = H - 9; z <= H - 6; z++) setStructure(x, z, STRUCTURE.WALL_STONE);
   }
+
   // Row of smaller houses south of Main Street, east of Alai Flats.
-  building(40, MS_Z + 4, 46, MS_Z + 9, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['N', 3]);
-  building(48, MS_Z + 4, 54, MS_Z + 9, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['N', 3]);
-  building(56, MS_Z + 4, 62, MS_Z + 9, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED, BLOCK.FLOOR_WOOD, ['N', 3]);
-  // Farm-lane pig enclosure (small fence rectangle).
+  building(40, MS_Z + 4, 46, MS_Z + 9, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['N', 3], 'apt');
+  building(48, MS_Z + 4, 54, MS_Z + 9, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['N', 3], 'apt');
+  building(56, MS_Z + 4, 62, MS_Z + 9, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['N', 3], 'apt');
+
+  // Farm-lane pig enclosure: dirt inside a fenced pen, water trough
+  // (barrel) at one side, a feed crate at the other.
   strokeRect(FL_X + 3, MS_Z + 5, FL_X + 6, MS_Z + 8, STRUCTURE.FENCE);
-  setGround(FL_X + 4, MS_Z + 6, BLOCK.DIRT);
-  setGround(FL_X + 5, MS_Z + 6, BLOCK.DIRT);
-  setGround(FL_X + 4, MS_Z + 7, BLOCK.DIRT);
-  setGround(FL_X + 5, MS_Z + 7, BLOCK.DIRT);
+  for (let z = MS_Z + 6; z <= MS_Z + 7; z++) {
+    for (let x = FL_X + 4; x <= FL_X + 5; x++) setGround(x, z, BLOCK.DIRT);
+  }
+  setProp(FL_X + 3, MS_Z + 4, STRUCTURE.BARREL); // water trough beside the pen
+  setProp(FL_X + 7, MS_Z + 8, STRUCTURE.CRATE);  // feed sack
 
   // ── Sorcerer's district (SW) ────────────────────────────────────
-  building(16, MS_Z + 8, 22, MS_Z + 14, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE, BLOCK.FLOOR_STONE, ['N', 3]);
-  building(16, MS_Z + 16, 22, MS_Z + 22, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE, BLOCK.FLOOR_STONE, ['N', 3]);
+  building(16, MS_Z + 8, 22, MS_Z + 14, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
+    BLOCK.FLOOR_STONE, ['N', 3], 'guild');
+  building(16, MS_Z + 16, 22, MS_Z + 22, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
+    BLOCK.FLOOR_STONE, ['N', 3], 'guild');
 
-  // ── Trees scattered inside grassy pockets of the city ───────────
-  const treeSpots = [
-    [26, 34], [26, 35], [40, 34], [41, 34],
-    [30, 20], [37, 21], [45, 28], [52, 27],
-    [22, 25], [16, 26], [64, 45], [64, 48],
-    [50, 45], [52, 46], [30, 44], [28, 45],
-    [43, 44], [45, 45], [58, 45], [60, 45],
-    [22, MS_Z + 22], [24, MS_Z + 24],
+  // ── Trees: only in specific green spaces that need shade ────────
+  // Grouped intentionally: a small park north of the temple plaza,
+  // hedges along the church garden path, and a treeline against the
+  // east wall so the wall doesn't read as a bare fence.
+  const parkTrees = [
+    // Temple plaza park (SE of temple)
+    [30, 39], [39, 39], [30, 40], [39, 40],
+    // Church garden
+    [15, 17], [17, 18],
+    // East-wall treeline
+    [58, 8], [58, 20], [58, 40], [58, 46], [58, 54],
+    // Small green pocket at the north end of Farm Lane
+    [43, MS_Z - 3], [46, MS_Z - 3],
   ];
-  for (const [x, z] of treeSpots) {
+  for (const [x, z] of parkTrees) {
     if (ground[idx(x, z)] === BLOCK.GRASS && structure[idx(x, z)] === 0) tree(x, z);
   }
 
-  // ── Street lamps along Main Street and Temple Street ────────────
-  for (let x = HS_X + 4; x < EAST; x += 6) {
-    setProp(x, MS_Z - 3, STRUCTURE.LAMPPOST);
-    setProp(x, MS_Z + 3, STRUCTURE.LAMPPOST);
-  }
-  for (let z = 6; z < MS_Z - 3; z += 6) {
-    setProp(TS_X - 3, z, STRUCTURE.LAMPPOST);
-    setProp(TS_X + 3, z, STRUCTURE.LAMPPOST);
-  }
+  // ── Street lamps at road intersections and gate approaches ───────
+  // Two at each of the four gates so guards can see who's coming in.
+  setProp(TS_X - 2, 5, STRUCTURE.LAMPPOST);
+  setProp(TS_X + 2, 5, STRUCTURE.LAMPPOST);
+  setProp(HS_X - 2, H - 5, STRUCTURE.LAMPPOST);
+  setProp(HS_X + 2, H - 5, STRUCTURE.LAMPPOST);
+  setProp(EAST - 1, MS_Z - 2, STRUCTURE.LAMPPOST);
+  setProp(EAST - 1, MS_Z + 2, STRUCTURE.LAMPPOST);
+  setProp(HS_X + 1, MS_Z + 4, STRUCTURE.LAMPPOST); // west gate to bridge
 
-  // Flower planters and benches around the temple plaza fountain.
-  setProp(32, 36, STRUCTURE.FLOWER_POT);
-  setProp(37, 36, STRUCTURE.FLOWER_POT);
-  setProp(32, 37, STRUCTURE.BUSH);
-  setProp(37, 37, STRUCTURE.BUSH);
-  setProp(30, 34, STRUCTURE.LAMPPOST);
-  setProp(39, 34, STRUCTURE.LAMPPOST);
+  // One lamp at each major street intersection.
+  setProp(TS_X - 3, MS_Z - 3, STRUCTURE.LAMPPOST); // Main × Temple NW
+  setProp(TS_X + 3, MS_Z - 3, STRUCTURE.LAMPPOST); // Main × Temple NE
+  setProp(HS_X - 2, MS_Z - 3, STRUCTURE.LAMPPOST); // Main × Harbour NW
+  setProp(HS_X + 2, MS_Z - 3, STRUCTURE.LAMPPOST); // Main × Harbour NE
+  setProp(FL_X - 1, MS_Z + 3, STRUCTURE.LAMPPOST); // Farm Lane / Main
+  setProp(MA_X - 1, MS_Z - 3, STRUCTURE.LAMPPOST); // Mill Avenue / Main
 
-  // Barrels/crates on the harbour dock.
+  // ── Harbour dock — cargo actually staged for loading/unloading ──
+  // Barrels of ale in one cluster, crates of goods in another, a
+  // single lamp at the base of the pier for evening arrivals.
+  setProp(15, MS_Z - 2, STRUCTURE.LAMPPOST);
   setProp(15, MS_Z, STRUCTURE.BARREL);
-  setProp(15, MS_Z + 1, STRUCTURE.CRATE);
-  setProp(15, MS_Z + 2, STRUCTURE.BARREL);
-  setProp(15, MS_Z - 1, STRUCTURE.CRATE);
+  setProp(15, MS_Z + 1, STRUCTURE.BARREL);
+  setProp(15, MS_Z + 2, STRUCTURE.CRATE);
+  setProp(15, MS_Z + 3, STRUCTURE.CRATE);
+  setProp(15, MS_Z + 4, STRUCTURE.CRATE);
+  // Coil of cargo on the sand beside the dock.
+  setProp(16, MS_Z - 1, STRUCTURE.BARREL);
+  setProp(16, MS_Z + 3, STRUCTURE.CRATE);
+  // Small sign at the dockhead pointing to the captain.
+  setProp(16, MS_Z, STRUCTURE.SIGN);
 
   // ── Bridges out of the four gates: paved connecting road ─────────
   for (let x = EAST + 2; x < W; x++) setGround(x, MS_Z, BLOCK.ROAD);
