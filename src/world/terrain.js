@@ -37,10 +37,20 @@ function outerRoadDistance(x, z) {
   return Math.min(Math.abs(z - spineEW), Math.abs(x - spineNS));
 }
 
+// Cobbled armory-inspection floor just outside the East Gate.
+const SHOWROOM_X0 = 100, SHOWROOM_X1 = 103;
+const SHOWROOM_Z0 = 56, SHOWROOM_Z1 = 62;
+
+export function isShowroomTile(worldX, worldZ) {
+  return worldX >= SHOWROOM_X0 && worldX <= SHOWROOM_X1
+    && worldZ >= SHOWROOM_Z0 && worldZ <= SHOWROOM_Z1;
+}
+
 export function blockAt(worldX, worldZ) {
   if (worldX < 0 || worldZ < 0 || worldX >= WORLD_SIZE_TILES || worldZ >= WORLD_SIZE_TILES) {
     return BLOCK.AIR;
   }
+  if (isShowroomTile(worldX, worldZ)) return BLOCK.COBBLE;
   if (isInCity(worldX, worldZ)) {
     const g = cityGround(worldX, worldZ);
     if (g !== 0) return g;

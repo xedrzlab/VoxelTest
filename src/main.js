@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import { WORLD_SIZE_TILES } from './config.js';
+import { TILE_HEIGHT, TILE_SIZE, WORLD_SIZE_TILES } from './config.js';
 import { createIsometricCamera, followTarget, resizeCamera } from './camera.js';
 import { Dragon } from './dragon.js';
 import { InputController } from './input.js';
+import { SHOWROOM } from './items.js';
 import { MiniMap } from './minimap.js';
 import { Player } from './player.js';
 import { roofMaterial } from './world/chunk.js';
@@ -36,6 +37,23 @@ function init() {
   // player can walk out the East Gate along Main Street and meet it.
   const dragon = new Dragon(scene, 112, 64);
   const monsters = [dragon];
+
+  // Armory showroom just north of the East Gate — 28 hand-built items
+  // laid out in a 4 x 7 grid on cobbled ground for close inspection.
+  const SHOWROOM_ORIGIN_X = 100;
+  const SHOWROOM_ORIGIN_Z = 56;
+  const showroomGroup = new THREE.Group();
+  showroomGroup.name = 'showroom';
+  scene.add(showroomGroup);
+  for (const [col, row, build /* , label */] of SHOWROOM) {
+    const grp = build();
+    grp.position.set(
+      (SHOWROOM_ORIGIN_X + col + 0.5) * TILE_SIZE,
+      TILE_HEIGHT,
+      (SHOWROOM_ORIGIN_Z + row + 0.5) * TILE_SIZE,
+    );
+    showroomGroup.add(grp);
+  }
 
   const input = new InputController();
   const statsEl = document.getElementById('stats');
@@ -107,7 +125,7 @@ function init() {
     }
     if (statsEl && (frame & 7) === 0) {
       statsEl.textContent =
-        `v0.3.1  ·  fps ${fpsShown}  ·  tile ${player.tileX},${player.tileZ}  ·  ` +
+        `v0.4.0  ·  fps ${fpsShown}  ·  tile ${player.tileX},${player.tileZ}  ·  ` +
         `chunks ${world.loadedChunkCount}${underRoof ? '  ·  indoors' : ''}`;
     }
 
