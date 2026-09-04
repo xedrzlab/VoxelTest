@@ -108,7 +108,8 @@ export class Player {
       TILE_HEIGHT,
       (this.tileZ + 0.5) * TILE_SIZE,
     );
-    this.mesh.rotation.y = Math.PI / 4;
+    // Face south by default (world +Z = toward the camera).
+    this.mesh.rotation.y = 0;
     scene.add(this.mesh);
 
     this.from = { x: this.mesh.position.x, z: this.mesh.position.z };

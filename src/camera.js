@@ -2,8 +2,11 @@ import * as THREE from 'three';
 
 const VIEW_TILES = 22;
 
-// Classic isometric offset: 45° yaw, ~35° pitch feels close to Tibia.
-const OFFSET = new THREE.Vector3(18, 22, 18);
+// Camera sits directly south of the player and slightly elevated —
+// world axes align with screen axes (north = screen up, east = screen
+// right), so d-pad cardinals map cleanly. Slight tilt keeps buildings
+// reading in 3D instead of pure top-down.
+const OFFSET = new THREE.Vector3(0, 22, 14);
 
 export function createIsometricCamera() {
   const aspect = window.innerWidth / Math.max(1, window.innerHeight);

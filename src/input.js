@@ -1,12 +1,12 @@
-// Screen-aligned directions. The isometric camera is at (+X, +Y, +Z),
-// so on-screen "down" is the world +X+Z diagonal, on-screen "right" is
-// +X-Z, etc. Mapping the cardinals this way makes the d-pad and arrow
-// keys move the character in the direction they visually point.
+// World cardinals. With the camera now sitting due-south of the player
+// and looking north, world +X is screen-right and world +Z is
+// screen-down, so d-pad up/down/left/right map straight through to
+// north/south/west/east. Diagonals resolve to the sensible SE/SW/etc.
 const CARDINAL = {
-  up: { x: -1, z: -1 },
-  down: { x: 1, z: 1 },
-  left: { x: -1, z: 1 },
-  right: { x: 1, z: -1 },
+  up: { x: 0, z: -1 },
+  down: { x: 0, z: 1 },
+  left: { x: -1, z: 0 },
+  right: { x: 1, z: 0 },
 };
 
 const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
