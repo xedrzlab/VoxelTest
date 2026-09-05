@@ -41,6 +41,7 @@ export const STRUCTURE = {
   WALL_STONE: 100,
   WALL_CASTLE: 101,
   WALL_WOOD: 102,
+  WALL_TIMBER: 130,
   ROOF_RED: 103,
   ROOF_GRAY: 104,
   ROOF_WHITE: 105,
@@ -75,6 +76,7 @@ export const BLOCK_COLORS = {
   [STRUCTURE.WALL_STONE]: [0xa0, 0xa2, 0xa4],
   [STRUCTURE.WALL_CASTLE]: [0x7a, 0x7c, 0x82],
   [STRUCTURE.WALL_WOOD]: [0x7a, 0x54, 0x30],
+  [STRUCTURE.WALL_TIMBER]: [0xe8, 0xe0, 0xc8],
   [STRUCTURE.ROOF_RED]: [0xa8, 0x3c, 0x24],
   [STRUCTURE.ROOF_GRAY]: [0x54, 0x52, 0x54],
   [STRUCTURE.ROOF_WHITE]: [0xea, 0xe4, 0xd2],
@@ -112,6 +114,7 @@ export const STRUCTURE_HEIGHTS = {
   [STRUCTURE.WALL_STONE]: 2.3,
   [STRUCTURE.WALL_CASTLE]: 3.4,
   [STRUCTURE.WALL_WOOD]: 2.1,
+  [STRUCTURE.WALL_TIMBER]: 2.4,
   [STRUCTURE.ROOF_RED]: 0.6,
   [STRUCTURE.ROOF_GRAY]: 0.6,
   [STRUCTURE.ROOF_WHITE]: 0.7,
@@ -147,9 +150,9 @@ export const STRUCTURE_PASSABLE = new Set([
 // Used to place interior roof cells at the correct Y even when the
 // interior tile itself has no wall neighbor.
 export const ROOF_BASE_HEIGHT = {
-  [STRUCTURE.ROOF_RED]: 2.3,
+  [STRUCTURE.ROOF_RED]: 2.4,
   [STRUCTURE.ROOF_GRAY]: 3.4,
-  [STRUCTURE.ROOF_WHITE]: 2.5,
+  [STRUCTURE.ROOF_WHITE]: 2.6,
 };
 
 export const BLOCK_SIDE_TINT = 0.78;

@@ -352,7 +352,7 @@ function build() {
   setProp(23, 16, STRUCTURE.BUSH);
   setProp(27, 16, STRUCTURE.BUSH);
   // Royal Army HQ next door — troops stack supply crates outside.
-  building(32, 6, 40, 13, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(32, 6, 40, 13, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_STONE, ['S', 4], 'hq');
   setProp(33, 15, STRUCTURE.CRATE);
   setProp(39, 15, STRUCTURE.CRATE);
@@ -361,22 +361,22 @@ function build() {
     BLOCK.FLOOR_STONE, ['S', 2], 'church');
 
   // ── Northern shops along Temple Street ───────────────────────────
-  building(24, 20, 30, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(24, 20, 30, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['E', 3], 'shop');
-  building(38, 20, 44, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(38, 20, 44, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['W', 3], 'shop');
 
   // ── Mill Avenue district (NE) ────────────────────────────────────
-  building(46, 8, 52, 14, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(46, 8, 52, 14, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['S', 3], 'shop');
-  building(54, 8, 62, 14, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(54, 8, 62, 14, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['S', 4], 'shop');
-  building(46, 18, 52, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(46, 18, 52, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['S', 3], 'shop');
-  building(54, 18, 62, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(54, 18, 62, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['S', 4], 'shop');
   // Mill — sacks of grain queued outside for the miller.
-  building(56, 6, 60, 10, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(56, 6, 60, 10, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_STONE, ['S', 2], 'mill');
   setProp(57, 12, STRUCTURE.CRATE);
   setProp(59, 12, STRUCTURE.CRATE);
@@ -400,23 +400,23 @@ function build() {
   setProp(38, 36, STRUCTURE.LAMPPOST);
 
   // ── Depot / library / other civic buildings around the temple ───
-  building(22, 28, 27, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(22, 28, 27, 32, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['E', 2], 'depot');
-  building(41, 28, 46, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(41, 28, 46, 32, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['W', 2], 'library');
-  building(41, 20, 46, 26, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(41, 20, 46, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['S', 2], 'shop');
 
   // ── Frodo's Tavern & shops east of temple ───────────────────────
   building(48, 28, 55, 32, STRUCTURE.WALL_WOOD, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['S', 3], 'tavern');
-  building(57, 28, 62, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(57, 28, 62, 32, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['S', 2], 'shop');
 
   // ── East wall houses row (residents live tucked against the wall) ─
   for (let z = 6; z <= H - 8; z += 6) {
     if (z >= MS_Z - 3 && z <= MS_Z + 3) continue;
-    building(60, z, 65, z + 4, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+    building(60, z, 65, z + 4, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
       BLOCK.FLOOR_WOOD, ['W', 2], 'apt');
   }
 
@@ -449,11 +449,11 @@ function build() {
   }
 
   // Row of smaller houses south of Main Street, east of Alai Flats.
-  building(40, MS_Z + 4, 46, MS_Z + 9, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(40, MS_Z + 4, 46, MS_Z + 9, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['N', 3], 'apt');
-  building(48, MS_Z + 4, 54, MS_Z + 9, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(48, MS_Z + 4, 54, MS_Z + 9, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['N', 3], 'apt');
-  building(56, MS_Z + 4, 62, MS_Z + 9, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_RED,
+  building(56, MS_Z + 4, 62, MS_Z + 9, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['N', 3], 'apt');
 
   // Farm-lane pig enclosure: dirt inside a fenced pen, water trough

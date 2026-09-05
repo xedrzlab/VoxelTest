@@ -77,6 +77,121 @@ function addGrassTuft(P, N, C, I, lx, lz, wx, wz) {
   }
 }
 
+// Render a half-timbered wall tile: cream plaster body, dark corner
+// posts + horizontal beams + vertical center post, and an optional
+// yellow-lit window with a flower box below on any face that opens to
+// the outside. This is what turns civilian walls from flat gray boxes
+// into something that reads like a real house.
+function addTimberFrameWall(P, N, C, I, x0, x1, z0, z1, yTop, wallH, sFlags, wx, wz) {
+  const plaster = toColor([0xe8, 0xe0, 0xc8]);
+  const beam = toColor([0x3a, 0x24, 0x14]);
+  const beamLight = toColor([0x4c, 0x30, 0x1a]);
+
+  // Plaster body — slightly inset so beams read as raised timbers.
+  pushBox(P, N, C, I,
+    x0 + 0.06, x1 - 0.06, yTop, yTop + wallH, z0 + 0.06, z1 - 0.06,
+    plaster, sFlags);
+
+  // Top and bottom timber rims wrap the whole tile.
+  pushBox(P, N, C, I,
+    x0, x1, yTop + wallH - 0.14, yTop + wallH, z0, z1, beam, sFlags);
+  pushBox(P, N, C, I,
+    x0, x1, yTop, yTop + 0.16, z0, z1, beam, sFlags);
+  // Mid horizontal beam splitting the wall into two panels.
+  const midY = yTop + wallH * 0.52;
+  pushBox(P, N, C, I,
+    x0, x1, midY - 0.06, midY + 0.06, z0, z1, beam, sFlags);
+
+  // Four vertical corner posts.
+  for (const [cx, cz] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) {
+    pushBox(P, N, C, I,
+      cx - 0.08, cx + 0.08, yTop, yTop + wallH, cz - 0.08, cz + 0.08, beam, 31);
+  }
+  // Vertical center posts on each exposed outside face.
+  const mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
+  if (sFlags & 2) pushBox(P, N, C, I,
+    mx - 0.05, mx + 0.05, yTop, yTop + wallH, z0 - 0.01, z0 + 0.07, beamLight, 31);
+  if (sFlags & 4) pushBox(P, N, C, I,
+    mx - 0.05, mx + 0.05, yTop, yTop + wallH, z1 - 0.07, z1 + 0.01, beamLight, 31);
+  if (sFlags & 8) pushBox(P, N, C, I,
+    x0 - 0.01, x0 + 0.07, yTop, yTop + wallH, mz - 0.05, mz + 0.05, beamLight, 31);
+  if (sFlags & 16) pushBox(P, N, C, I,
+    x1 - 0.07, x1 + 0.01, yTop, yTop + wallH, mz - 0.05, mz + 0.05, beamLight, 31);
+
+  // Window: place on ONE outside face, chosen deterministically per tile
+  // so different tiles get windows on different sides and every ~2nd
+  // tile in a wall run actually has one.
+  const wantWindow = tileHash(wx, wz, 41) < 0.55;
+  if (wantWindow) {
+    // Preference order — south first (facing the camera), then east,
+    // then north, then west. Take the first exposed one.
+    let face = null;
+    if (sFlags & 4) face = 'S';
+    else if (sFlags & 16) face = 'E';
+    else if (sFlags & 2) face = 'N';
+    else if (sFlags & 8) face = 'W';
+    if (face) addWindowWithFlowerBox(P, N, C, I, x0, x1, z0, z1, yTop, wallH, face);
+  }
+}
+
+function addWindowWithFlowerBox(P, N, C, I, x0, x1, z0, z1, yTop, wallH, face) {
+  const frame = toColor([0xf2, 0xec, 0xdc]);
+  const glass = toColor([0xf6, 0xd2, 0x62]);
+  const mullion = toColor([0x3a, 0x24, 0x14]);
+  const planter = toColor([0x5a, 0x38, 0x1c]);
+  const flowerA = toColor([0xd42a2a]);
+  const flowerB = toColor([0xf6, 0xd8, 0x54]);
+
+  const mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
+  // Window rectangle sits in the upper panel of the wall.
+  const wy0 = yTop + wallH * 0.62;
+  const wy1 = yTop + wallH * 0.86;
+  const hw = 0.22; // half-width of window
+  // Sill and planter Y range.
+  const sy0 = yTop + wallH * 0.54;
+  const sy1 = yTop + wallH * 0.62;
+
+  const put = (fx0, fx1, fy0, fy1, fz0, fz1, color) =>
+    pushBox(P, N, C, I, fx0, fx1, fy0, fy1, fz0, fz1, color, 31);
+
+  if (face === 'S') {
+    put(mx - hw, mx + hw, wy0, wy1, z1, z1 + 0.05, frame);
+    put(mx - hw + 0.04, mx + hw - 0.04, wy0 + 0.03, wy1 - 0.03, z1 + 0.03, z1 + 0.07, glass);
+    put(mx - 0.02, mx + 0.02, wy0, wy1, z1 + 0.05, z1 + 0.08, mullion);
+    put(mx - hw + 0.04, mx + hw - 0.04, (wy0 + wy1) / 2 - 0.02, (wy0 + wy1) / 2 + 0.02, z1 + 0.05, z1 + 0.08, mullion);
+    // Planter + flowers
+    put(mx - hw - 0.03, mx + hw + 0.03, sy0, sy1, z1 - 0.02, z1 + 0.1, planter);
+    put(mx - 0.14, mx - 0.02, sy1, sy1 + 0.08, z1 + 0.02, z1 + 0.1, flowerA);
+    put(mx + 0.02, mx + 0.14, sy1, sy1 + 0.08, z1 + 0.02, z1 + 0.1, flowerB);
+  } else if (face === 'N') {
+    put(mx - hw, mx + hw, wy0, wy1, z0 - 0.05, z0, frame);
+    put(mx - hw + 0.04, mx + hw - 0.04, wy0 + 0.03, wy1 - 0.03, z0 - 0.07, z0 - 0.03, glass);
+    put(mx - 0.02, mx + 0.02, wy0, wy1, z0 - 0.08, z0 - 0.05, mullion);
+    put(mx - hw + 0.04, mx + hw - 0.04, (wy0 + wy1) / 2 - 0.02, (wy0 + wy1) / 2 + 0.02, z0 - 0.08, z0 - 0.05, mullion);
+    put(mx - hw - 0.03, mx + hw + 0.03, sy0, sy1, z0 - 0.1, z0 + 0.02, planter);
+    put(mx - 0.14, mx - 0.02, sy1, sy1 + 0.08, z0 - 0.1, z0 - 0.02, flowerA);
+    put(mx + 0.02, mx + 0.14, sy1, sy1 + 0.08, z0 - 0.1, z0 - 0.02, flowerB);
+  } else if (face === 'E') {
+    const mz = (z0 + z1) / 2;
+    put(x1, x1 + 0.05, wy0, wy1, mz - hw, mz + hw, frame);
+    put(x1 + 0.03, x1 + 0.07, wy0 + 0.03, wy1 - 0.03, mz - hw + 0.04, mz + hw - 0.04, glass);
+    put(x1 + 0.05, x1 + 0.08, wy0, wy1, mz - 0.02, mz + 0.02, mullion);
+    put(x1 + 0.05, x1 + 0.08, (wy0 + wy1) / 2 - 0.02, (wy0 + wy1) / 2 + 0.02, mz - hw + 0.04, mz + hw - 0.04, mullion);
+    put(x1 - 0.02, x1 + 0.1, sy0, sy1, mz - hw - 0.03, mz + hw + 0.03, planter);
+    put(x1 + 0.02, x1 + 0.1, sy1, sy1 + 0.08, mz - 0.14, mz - 0.02, flowerA);
+    put(x1 + 0.02, x1 + 0.1, sy1, sy1 + 0.08, mz + 0.02, mz + 0.14, flowerB);
+  } else if (face === 'W') {
+    const mz = (z0 + z1) / 2;
+    put(x0 - 0.05, x0, wy0, wy1, mz - hw, mz + hw, frame);
+    put(x0 - 0.07, x0 - 0.03, wy0 + 0.03, wy1 - 0.03, mz - hw + 0.04, mz + hw - 0.04, glass);
+    put(x0 - 0.08, x0 - 0.05, wy0, wy1, mz - 0.02, mz + 0.02, mullion);
+    put(x0 - 0.08, x0 - 0.05, (wy0 + wy1) / 2 - 0.02, (wy0 + wy1) / 2 + 0.02, mz - hw + 0.04, mz + hw - 0.04, mullion);
+    put(x0 - 0.1, x0 + 0.02, sy0, sy1, mz - hw - 0.03, mz + hw + 0.03, planter);
+    put(x0 - 0.1, x0 - 0.02, sy1, sy1 + 0.08, mz - 0.14, mz - 0.02, flowerA);
+    put(x0 - 0.1, x0 - 0.02, sy1, sy1 + 0.08, mz + 0.02, mz + 0.14, flowerB);
+  }
+}
+
 function addPebble(P, N, C, I, lx, lz, wx, wz) {
   const base = TILE_HEIGHT;
   const ox = (tileHash(wx, wz, 23) - 0.5) * 0.4;
@@ -209,6 +324,9 @@ export function buildChunkMesh(chunkX, chunkZ) {
         } else if (struct === STRUCTURE.DOCK_WOOD) {
           pushBox(gP, gN, gC, gI,
             x0, x1, 0.9, 0.9 + sh, z0, z1, structColor, 31);
+        } else if (struct === STRUCTURE.WALL_TIMBER) {
+          addTimberFrameWall(gP, gN, gC, gI,
+            x0, x1, z0, z1, yTop, sh, sFlags, wx, wz);
         } else {
           pushBox(gP, gN, gC, gI,
             x0, x1, yTop, yTop + sh, z0, z1, structColor, sFlags);
@@ -254,6 +372,20 @@ export function buildChunkMesh(chunkX, chunkZ) {
           if (roofAt(wx + 1, wz) !== roof) rFlags |= 16;
           pushBox(rP, rN, rC, rI,
             x0, x1, baseY, baseY + rh, z0, z1, roofColor, rFlags);
+          // Darker eave overhanging the walls, only on the outer
+          // roof tiles — this is what casts the "shadow line" under
+          // the roof in real half-timbered buildings.
+          if (rFlags & (2 | 4 | 8 | 16)) {
+            const eaveColor = toColor([0x38, 0x20, 0x10]);
+            const eaveH = 0.14;
+            const oh = 0.15;
+            const ex0 = (rFlags & 8) ? x0 - oh : x0;
+            const ex1 = (rFlags & 16) ? x1 + oh : x1;
+            const ez0 = (rFlags & 2) ? z0 - oh : z0;
+            const ez1 = (rFlags & 4) ? z1 + oh : z1;
+            pushBox(rP, rN, rC, rI,
+              ex0, ex1, baseY - eaveH, baseY, ez0, ez1, eaveColor, rFlags | 32);
+          }
         }
       }
 
