@@ -472,7 +472,9 @@ function build() {
   // ── Sorcerer's district (SW), tucked west of Harbour Street ─────
   // Harbour Street runs at x=19..21, so guild buildings sit at x=14..18
   // with the door facing the road (east side).
-  building(14, MS_Z + 8, 18, MS_Z + 14, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
+  // North block shifted up so it sits ABOVE Sorcerer's Avenue
+  // (z=46,47) instead of getting a road cut through its middle.
+  building(14, MS_Z + 4, 18, MS_Z + 10, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
     BLOCK.FLOOR_STONE, ['E', 3], 'guild');
   building(14, MS_Z + 16, 18, MS_Z + 22, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
     BLOCK.FLOOR_STONE, ['E', 3], 'guild');
