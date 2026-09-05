@@ -257,10 +257,8 @@ function build() {
     setGround(x, H - 12, BLOCK.COBBLE);
     setGround(x, H - 11, BLOCK.COBBLE);
   }
-  // Lower Swamp Lane.
-  for (let x = HS_X; x <= 55; x++) {
-    setGround(x, H - 7, BLOCK.COBBLE);
-  }
+  // (Lower Swamp Lane removed — it was cutting through the Alai
+  // Flats south block; Upper Swamp Lane covers the same connection.)
   // Sorcerer's Avenue — east-west, southwest of temple.
   for (let x = 14; x <= HS_X + 4; x++) {
     setGround(x, MS_Z + 12, BLOCK.COBBLE);
@@ -351,11 +349,11 @@ function build() {
   setProp(29, 17, STRUCTURE.LAMPPOST);
   setProp(23, 16, STRUCTURE.BUSH);
   setProp(27, 16, STRUCTURE.BUSH);
-  // Royal Army HQ next door — troops stack supply crates outside.
-  building(32, 6, 40, 13, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+  // Royal Army HQ next door — shifted east of Temple Street (x=32-36).
+  building(38, 6, 46, 13, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_STONE, ['S', 4], 'hq');
-  setProp(33, 15, STRUCTURE.CRATE);
   setProp(39, 15, STRUCTURE.CRATE);
+  setProp(45, 15, STRUCTURE.CRATE);
   // Church — modest stone chapel with a garden path.
   building(15, 10, 19, 16, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
     BLOCK.FLOOR_STONE, ['S', 2], 'church');
@@ -366,23 +364,26 @@ function build() {
   building(38, 20, 44, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['W', 3], 'shop');
 
-  // ── Mill Avenue district (NE) ────────────────────────────────────
-  building(46, 8, 52, 14, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
-    BLOCK.FLOOR_WOOD, ['S', 3], 'shop');
-  building(54, 8, 62, 14, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
-    BLOCK.FLOOR_WOOD, ['S', 4], 'shop');
-  building(46, 18, 52, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
-    BLOCK.FLOOR_WOOD, ['S', 3], 'shop');
-  building(54, 18, 62, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
-    BLOCK.FLOOR_WOOD, ['S', 4], 'shop');
+  // ── Mill Avenue district (NE), buildings sit on either side of the
+  // avenue (x=50,51). West block ends at x=49, east block starts at x=52.
+  building(46, 8, 49, 14, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['S', 2], 'shop');
+  building(52, 8, 62, 14, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['S', 5], 'shop');
+  building(46, 18, 49, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['S', 2], 'shop');
+  building(52, 18, 62, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['S', 5], 'shop');
   // Mill — sacks of grain queued outside for the miller.
   building(56, 6, 60, 10, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_STONE, ['S', 2], 'mill');
   setProp(57, 12, STRUCTURE.CRATE);
   setProp(59, 12, STRUCTURE.CRATE);
 
-  // ── Central temple, right on Main/Temple Street junction ─────────
-  building(29, 28, 39, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
+  // ── Central temple, north of Main/Temple Street junction ────────
+  // Building south wall lands at z=30, leaving z=31 as buffer before
+  // Main Street starts at z=32.
+  building(29, 26, 39, 30, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
     BLOCK.FLOOR_STONE, ['S', 5], 'temple');
   // Fountain plaza to the SOUTH of Main Street (Main Street occupies
   // z=32..36). Fountain sits at z=37-38 with symmetric planters.
@@ -397,23 +398,26 @@ function build() {
   setProp(31, 36, STRUCTURE.LAMPPOST);
   setProp(38, 36, STRUCTURE.LAMPPOST);
 
-  // ── Depot / library / other civic buildings around the temple ───
-  building(22, 28, 27, 32, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+  // ── Depot / library / civic buildings around the temple ────────
+  // All shifted north 2 tiles so south walls sit at z=30 (buffer at
+  // z=31, Main Street starts at z=32).
+  building(22, 26, 27, 30, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['E', 2], 'depot');
-  building(41, 28, 46, 32, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+  building(41, 26, 46, 30, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['W', 2], 'library');
-  building(41, 20, 46, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
-    BLOCK.FLOOR_WOOD, ['S', 2], 'shop');
 
-  // ── Frodo's Tavern & shops east of temple ───────────────────────
-  building(48, 28, 55, 32, STRUCTURE.WALL_WOOD, STRUCTURE.ROOF_RED,
+  // ── Frodo's Tavern & east-shop, likewise shifted ────────────────
+  building(48, 26, 55, 30, STRUCTURE.WALL_WOOD, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['S', 3], 'tavern');
-  building(57, 28, 62, 32, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+  building(57, 26, 62, 30, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['S', 2], 'shop');
 
   // ── East wall houses row (residents live tucked against the wall) ─
-  for (let z = 6; z <= H - 8; z += 6) {
-    if (z >= MS_Z - 3 && z <= MS_Z + 3) continue;
+  for (let z = 6; z <= H - 10; z += 6) {
+    // Skip any building whose z..z+4 span would collide with a
+    // horizontal road (Main Street at 32-36 or Upper Swamp Lane at 58-59).
+    if (z + 4 >= MS_Z - 2 && z <= MS_Z + 2) continue;
+    if (z + 4 >= H - 12 && z <= H - 11) continue;
     building(60, z, 65, z + 4, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
       BLOCK.FLOOR_WOOD, ['W', 2], 'apt');
   }
@@ -446,22 +450,24 @@ function build() {
     for (let z = H - 9; z <= H - 6; z++) setStructure(x, z, STRUCTURE.WALL_STONE);
   }
 
-  // Row of smaller houses south of Main Street, east of Alai Flats.
-  building(40, MS_Z + 4, 46, MS_Z + 9, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
-    BLOCK.FLOOR_WOOD, ['N', 3], 'apt');
+  // Row of smaller houses south of Main Street. The one that used to
+  // span x=40..46 now ends at x=43 so it doesn't cross Farm Lane
+  // (x=44..45). The rest sit east of Farm Lane already.
+  building(40, MS_Z + 4, 43, MS_Z + 9, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+    BLOCK.FLOOR_WOOD, ['N', 2], 'apt');
   building(48, MS_Z + 4, 54, MS_Z + 9, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['N', 3], 'apt');
   building(56, MS_Z + 4, 62, MS_Z + 9, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['N', 3], 'apt');
 
-  // Farm-lane pig enclosure: dirt inside a fenced pen, water trough
-  // (barrel) at one side, a feed crate at the other.
-  strokeRect(FL_X + 3, MS_Z + 5, FL_X + 6, MS_Z + 8, STRUCTURE.FENCE);
-  for (let z = MS_Z + 6; z <= MS_Z + 7; z++) {
+  // Farm-lane pig enclosure — moved 6 tiles south of the row houses so
+  // it doesn't overlap them, and tucked east of Farm Lane.
+  strokeRect(FL_X + 3, MS_Z + 12, FL_X + 6, MS_Z + 15, STRUCTURE.FENCE);
+  for (let z = MS_Z + 13; z <= MS_Z + 14; z++) {
     for (let x = FL_X + 4; x <= FL_X + 5; x++) setGround(x, z, BLOCK.DIRT);
   }
-  setProp(FL_X + 3, MS_Z + 4, STRUCTURE.BARREL); // water trough beside the pen
-  setProp(FL_X + 7, MS_Z + 8, STRUCTURE.CRATE);  // feed sack
+  setProp(FL_X + 3, MS_Z + 11, STRUCTURE.BARREL);
+  setProp(FL_X + 7, MS_Z + 15, STRUCTURE.CRATE);
 
   // ── Sorcerer's district (SW), tucked west of Harbour Street ─────
   // Harbour Street runs at x=19..21, so guild buildings sit at x=14..18
