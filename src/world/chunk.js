@@ -134,6 +134,74 @@ function addTimberFrameWall(P, N, C, I, x0, x1, z0, z1, yTop, wallH, sFlags, wx,
   }
 }
 
+// Castle / city-wall tile: solid stone body + two horizontal masonry
+// courses (darker joint lines) + a slight walkway lip on top + a
+// crenellation pattern of merlons whose orientation depends on the
+// wall's run direction. Adjacent tiles form the alternating merlon /
+// crenel pattern automatically via parity.
+function addCastleWall(P, N, C, I, x0, x1, z0, z1, yTop, wallH, sFlags, wx, wz) {
+  const stone = toColor([0x82, 0x84, 0x88]);
+  const stoneDark = toColor([0x54, 0x56, 0x5a]);
+  const stoneLight = toColor([0x9a, 0x9c, 0xa0]);
+
+  // Main body (dark heavy stone).
+  pushBox(P, N, C, I, x0, x1, yTop, yTop + wallH, z0, z1, stone, sFlags);
+
+  // Two horizontal joint bands so the wall reads as coursed masonry.
+  const courseH = 0.06;
+  for (const yBand of [yTop + wallH * 0.34, yTop + wallH * 0.68]) {
+    pushBox(P, N, C, I,
+      x0 - 0.005, x1 + 0.005, yBand - courseH / 2, yBand + courseH / 2,
+      z0 - 0.005, z1 + 0.005, stoneDark, sFlags);
+  }
+
+  // Overhanging walkway lip at the top on outward faces.
+  const lipOverhang = 0.09;
+  if (sFlags & (2 | 4 | 8 | 16)) {
+    const lx0 = (sFlags & 8) ? x0 - lipOverhang : x0;
+    const lx1 = (sFlags & 16) ? x1 + lipOverhang : x1;
+    const lz0 = (sFlags & 2) ? z0 - lipOverhang : z0;
+    const lz1 = (sFlags & 4) ? z1 + lipOverhang : z1;
+    pushBox(P, N, C, I,
+      lx0, lx1, yTop + wallH - 0.14, yTop + wallH, lz0, lz1,
+      stoneLight, sFlags | 32);
+  }
+
+  // Merlons on top — determine wall axis by which neighbors are also
+  // castle wall. Along-axis walls get two merlons per tile with a
+  // gap in the middle; corner / standalone tiles get one central
+  // merlon block.
+  const merlonH = 0.5;
+  const isCastle = (nx, nz) => structureAt(nx, nz) === STRUCTURE.WALL_CASTLE;
+  const runsX = isCastle(wx - 1, wz) || isCastle(wx + 1, wz);
+  const runsZ = isCastle(wx, wz - 1) || isCastle(wx, wz + 1);
+  const merlonY0 = yTop + wallH;
+  const merlonY1 = merlonY0 + merlonH;
+
+  if (runsX && !runsZ) {
+    // Two merlons stacked along the tile's X extent.
+    pushBox(P, N, C, I,
+      x0 + 0.02, x0 + 0.44, merlonY0, merlonY1, z0 + 0.05, z1 - 0.05, stone, 31);
+    pushBox(P, N, C, I,
+      x0 + 0.56, x0 + 0.98, merlonY0, merlonY1, z0 + 0.05, z1 - 0.05, stone, 31);
+  } else if (runsZ && !runsX) {
+    pushBox(P, N, C, I,
+      x0 + 0.05, x1 - 0.05, merlonY0, merlonY1, z0 + 0.02, z0 + 0.44, stone, 31);
+    pushBox(P, N, C, I,
+      x0 + 0.05, x1 - 0.05, merlonY0, merlonY1, z0 + 0.56, z0 + 0.98, stone, 31);
+  } else {
+    // Corner / T-junction / standalone: 4 corner merlons form a mini
+    // tower cap.
+    for (const [cx, cz] of [
+      [x0 + 0.18, z0 + 0.18], [x1 - 0.18, z0 + 0.18],
+      [x0 + 0.18, z1 - 0.18], [x1 - 0.18, z1 - 0.18],
+    ]) {
+      pushBox(P, N, C, I,
+        cx - 0.14, cx + 0.14, merlonY0, merlonY1, cz - 0.14, cz + 0.14, stone, 31);
+    }
+  }
+}
+
 function addWindowWithFlowerBox(P, N, C, I, x0, x1, z0, z1, yTop, wallH, face) {
   const frame = toColor([0xf2, 0xec, 0xdc]);
   const glass = toColor([0xf6, 0xd2, 0x62]);
@@ -326,6 +394,9 @@ export function buildChunkMesh(chunkX, chunkZ) {
             x0, x1, 0.9, 0.9 + sh, z0, z1, structColor, 31);
         } else if (struct === STRUCTURE.WALL_TIMBER) {
           addTimberFrameWall(gP, gN, gC, gI,
+            x0, x1, z0, z1, yTop, sh, sFlags, wx, wz);
+        } else if (struct === STRUCTURE.WALL_CASTLE) {
+          addCastleWall(gP, gN, gC, gI,
             x0, x1, z0, z1, yTop, sh, sFlags, wx, wz);
         } else {
           pushBox(gP, gN, gC, gI,

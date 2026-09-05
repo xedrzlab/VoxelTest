@@ -384,16 +384,14 @@ function build() {
   // ── Central temple, right on Main/Temple Street junction ─────────
   building(29, 28, 39, 32, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
     BLOCK.FLOOR_STONE, ['S', 5], 'temple');
-  // Fountain in the plaza directly south of the temple entrance.
-  setStructure(34, 36, STRUCTURE.FOUNTAIN);
-  setStructure(35, 36, STRUCTURE.FOUNTAIN);
+  // Fountain plaza to the SOUTH of Main Street (Main Street occupies
+  // z=32..36). Fountain sits at z=37-38 with symmetric planters.
   setStructure(34, 37, STRUCTURE.FOUNTAIN);
   setStructure(35, 37, STRUCTURE.FOUNTAIN);
-  // Two symmetric planters flanking the plaza + lamps that light the
-  // fountain at night. Planted here because the plaza is symmetric
-  // and readable, not sprinkled.
-  setProp(32, 35, STRUCTURE.FLOWER_POT);
-  setProp(37, 35, STRUCTURE.FLOWER_POT);
+  setStructure(34, 38, STRUCTURE.FOUNTAIN);
+  setStructure(35, 38, STRUCTURE.FOUNTAIN);
+  setProp(32, 37, STRUCTURE.FLOWER_POT);
+  setProp(37, 37, STRUCTURE.FLOWER_POT);
   setProp(32, 38, STRUCTURE.BUSH);
   setProp(37, 38, STRUCTURE.BUSH);
   setProp(31, 36, STRUCTURE.LAMPPOST);
@@ -465,11 +463,13 @@ function build() {
   setProp(FL_X + 3, MS_Z + 4, STRUCTURE.BARREL); // water trough beside the pen
   setProp(FL_X + 7, MS_Z + 8, STRUCTURE.CRATE);  // feed sack
 
-  // ── Sorcerer's district (SW) ────────────────────────────────────
-  building(16, MS_Z + 8, 22, MS_Z + 14, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
-    BLOCK.FLOOR_STONE, ['N', 3], 'guild');
-  building(16, MS_Z + 16, 22, MS_Z + 22, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
-    BLOCK.FLOOR_STONE, ['N', 3], 'guild');
+  // ── Sorcerer's district (SW), tucked west of Harbour Street ─────
+  // Harbour Street runs at x=19..21, so guild buildings sit at x=14..18
+  // with the door facing the road (east side).
+  building(14, MS_Z + 8, 18, MS_Z + 14, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
+    BLOCK.FLOOR_STONE, ['E', 3], 'guild');
+  building(14, MS_Z + 16, 18, MS_Z + 22, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
+    BLOCK.FLOOR_STONE, ['E', 3], 'guild');
 
   // ── Trees: only in specific green spaces that need shade ────────
   // Grouped intentionally: a small park north of the temple plaza,
@@ -528,6 +528,36 @@ function build() {
   for (let x = EAST + 2; x < W; x++) setGround(x, MS_Z + 1, BLOCK.ROAD);
   for (let z = 0; z < 4; z++) setGround(TS_X, z, BLOCK.ROAD);
   for (let z = H - 4; z < H; z++) setGround(HS_X, z, BLOCK.ROAD);
+
+  // ── Road-clearing pass ─────────────────────────────────────────────
+  // Anything that landed on top of a cobble/road street tile gets
+  // removed so the streets stay walkable end-to-end. Fences and
+  // building walls that straddle a road produce a doorway there
+  // instead of a blocker.
+  const CLEAR_WALLS = new Set([
+    STRUCTURE.WALL_STONE, STRUCTURE.WALL_CASTLE,
+    STRUCTURE.WALL_WOOD, STRUCTURE.WALL_TIMBER,
+    STRUCTURE.FENCE,
+  ]);
+  for (let z = 0; z < H; z++) {
+    for (let x = 0; x < W; x++) {
+      const g = ground[idx(x, z)];
+      if (g !== BLOCK.COBBLE && g !== BLOCK.ROAD) continue;
+      const s = structure[idx(x, z)];
+      if (CLEAR_WALLS.has(s)) structure[idx(x, z)] = 0;
+      // Roofs must not float over a road (would leave a floating slab
+      // once the wall beneath is cleared).
+      roof[idx(x, z)] = 0;
+      // Props that would block a road (lampposts are OK to leave —
+      // they sit tight to one side and the player can walk around).
+      const p = prop[idx(x, z)];
+      if (p === STRUCTURE.CRATE || p === STRUCTURE.BARREL || p === STRUCTURE.BUSH
+          || p === STRUCTURE.FLOWER_POT || p === STRUCTURE.SIGN) {
+        prop[idx(x, z)] = 0;
+      }
+      chimney[idx(x, z)] = 0;
+    }
+  }
 }
 
 build();

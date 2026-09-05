@@ -22,9 +22,17 @@ const COLOR = {
 
 function boxMesh(w, h, d, color, x = 0, y = 0, z = 0) {
   const geo = new THREE.BoxGeometry(w, h, d);
-  const mat = new THREE.MeshLambertMaterial({ color, flatShading: true });
+  // depthTest is disabled so buildings between the camera and the
+  // character can never fully hide them; renderOrder keeps the
+  // character drawn last so it also sits on top of any semi-
+  // transparent roof geometry being faded out.
+  const mat = new THREE.MeshLambertMaterial({
+    color, flatShading: true,
+    depthTest: false, depthWrite: false, transparent: true,
+  });
   const m = new THREE.Mesh(geo, mat);
   m.position.set(x, y, z);
+  m.renderOrder = 999;
   return m;
 }
 
