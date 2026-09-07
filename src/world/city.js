@@ -359,9 +359,11 @@ function build() {
     BLOCK.FLOOR_STONE, ['S', 2], 'church');
 
   // ── Northern shops along Temple Street ───────────────────────────
-  building(24, 20, 30, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+  // Shifted 4 tiles north (z=16..22) so the temple/depot/library row
+  // below can shift further from Main Street.
+  building(24, 16, 30, 22, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['E', 3], 'shop');
-  building(38, 20, 44, 26, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+  building(38, 16, 44, 22, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['W', 3], 'shop');
 
   // ── Mill Avenue district (NE), buildings sit on either side of the
@@ -381,9 +383,9 @@ function build() {
   setProp(59, 12, STRUCTURE.CRATE);
 
   // ── Central temple, north of Main/Temple Street junction ────────
-  // Building south wall lands at z=30, leaving z=31 as buffer before
-  // Main Street starts at z=32.
-  building(29, 26, 39, 30, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
+  // South wall now at z=28, giving a full 3-tile grass buffer (29,30,31)
+  // between the temple and Main Street's north edge at z=32.
+  building(29, 24, 39, 28, STRUCTURE.WALL_STONE, STRUCTURE.ROOF_WHITE,
     BLOCK.FLOOR_STONE, ['S', 5], 'temple');
   // Fountain plaza to the SOUTH of Main Street (Main Street occupies
   // z=32..36). Fountain sits at z=37-38 with symmetric planters.
@@ -399,17 +401,17 @@ function build() {
   setProp(38, 36, STRUCTURE.LAMPPOST);
 
   // ── Depot / library / civic buildings around the temple ────────
-  // All shifted north 2 tiles so south walls sit at z=30 (buffer at
-  // z=31, Main Street starts at z=32).
-  building(22, 26, 27, 30, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+  // South walls at z=28, giving a 3-tile grass buffer (29,30,31)
+  // before Main Street starts at z=32.
+  building(22, 24, 27, 28, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['E', 2], 'depot');
-  building(41, 26, 46, 30, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+  building(41, 24, 46, 28, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['W', 2], 'library');
 
   // ── Frodo's Tavern & east-shop, likewise shifted ────────────────
-  building(48, 26, 55, 30, STRUCTURE.WALL_WOOD, STRUCTURE.ROOF_RED,
+  building(48, 24, 55, 28, STRUCTURE.WALL_WOOD, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['S', 3], 'tavern');
-  building(57, 26, 62, 30, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
+  building(57, 24, 62, 28, STRUCTURE.WALL_TIMBER, STRUCTURE.ROOF_RED,
     BLOCK.FLOOR_WOOD, ['S', 2], 'shop');
 
   // ── East wall houses row (residents live tucked against the wall) ─
