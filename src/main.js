@@ -125,7 +125,7 @@ function init() {
     }
     if (statsEl && (frame & 7) === 0) {
       statsEl.textContent =
-        `v0.5.4  ·  fps ${fpsShown}  ·  tile ${player.tileX},${player.tileZ}  ·  ` +
+        `v0.5.5  ·  fps ${fpsShown}  ·  tile ${player.tileX},${player.tileZ}  ·  ` +
         `chunks ${world.loadedChunkCount}${underRoof ? '  ·  indoors' : ''}`;
     }
 

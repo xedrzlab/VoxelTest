@@ -234,8 +234,15 @@ function build() {
   for (let x = 12; x <= 66; x++) {
     for (let dz = -2; dz <= 2; dz++) setGround(x, MS_Z + dz, BLOCK.COBBLE);
   }
-  // Temple Street: north-south central axis.
-  for (let z = 4; z <= MS_Z; z++) {
+  // Temple Street: north-south central axis. Ends at z=23, one tile
+  // north of the temple's north wall (z=24), so the street terminates
+  // AT the temple rather than cutting through it.
+  for (let z = 4; z <= 23; z++) {
+    for (let dx = -2; dx <= 2; dx++) setGround(TS_X + dx, z, BLOCK.COBBLE);
+  }
+  // South plaza: reconnects Temple Street to Main Street around the
+  // temple's south facade so travellers can still walk between them.
+  for (let z = 29; z <= 32; z++) {
     for (let dx = -2; dx <= 2; dx++) setGround(TS_X + dx, z, BLOCK.COBBLE);
   }
   // Harbour Street.
@@ -247,8 +254,14 @@ function build() {
     setGround(FL_X, z, BLOCK.COBBLE);
     setGround(FL_X + 1, z, BLOCK.COBBLE);
   }
-  // Mill Avenue.
-  for (let z = 4; z <= MS_Z; z++) {
+  // Mill Avenue. Dead-ends at Frodo's Tavern's north facade (z=23)
+  // rather than cutting through it. A short connecting stub at
+  // z=29..32 rejoins Main Street around the tavern's south side.
+  for (let z = 4; z <= 23; z++) {
+    setGround(MA_X, z, BLOCK.COBBLE);
+    setGround(MA_X + 1, z, BLOCK.COBBLE);
+  }
+  for (let z = 29; z <= 32; z++) {
     setGround(MA_X, z, BLOCK.COBBLE);
     setGround(MA_X + 1, z, BLOCK.COBBLE);
   }
